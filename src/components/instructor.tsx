@@ -65,7 +65,7 @@ export default function Instructors() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 ml-5">
           {instructors.map((instructor) => (
             <Card key={instructor.name} className="group">
               <div className="p-6">
