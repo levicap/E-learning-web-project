@@ -83,7 +83,6 @@ import {
 } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import Live from './live';
-import Navbar from './navbar';
 
 
 const navigationItems = [

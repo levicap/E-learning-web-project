@@ -1,4 +1,3 @@
-import Navbar from "./navbar";
 import SidebarContent from "./sidebar";
 import React, { ReactNode } from "react";
 import { useState } from "react";
