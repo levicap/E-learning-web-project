@@ -21,21 +21,25 @@ import Quiz1 from './components/quiz/quiz1';
 import Gen1 from './components/quizaigen/gen1';
 import Session1 from './components/sessioncrud/session1';
 import CrudTeacher1 from './components/crudteacher/crud'
-// import Navbar from './components/navbar';
 import SidebarContent from './components/sidebar';
 import LayoutTeacher from './components/layoutteacher';
 import Course1 from './components/ta';
 import { Toaster } from '@/components/ui/sonner';
 import { store } from '@/lib/store/store';
-import Navbar from '@/components/navbar';
+import Navbar from '@/components/Landing/Navbar';
 import Login from '@/components/auth/Login';
 import Register from '@/components/auth/Register';
 import RoleSelection from './components/auth/RoleSelection';
 import AuthRedirector from './components/auth/AuthRedirector ';
+
 export default function App() {
   return (
-    
+  
+
+    <>
     <Router>
+    <Navbar/>
+
       <Routes>
       <Route path="/role-check" element={<AuthRedirector />} />
 
@@ -71,6 +75,6 @@ export default function App() {
         
       </Routes>
     </Router>
-   
+    </>
   );}
 
