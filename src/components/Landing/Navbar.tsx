@@ -10,8 +10,11 @@ import {
 import { Sparkles, BookOpen, GraduationCap, Users2, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useNavigate } from "react-router-dom";
+import { SignedIn, SignedOut, UserButton } from "@clerk/clerk-react"; // Update import based on your Clerk version
 
 export default function Navbar() {
+  const navigate = useNavigate();
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
@@ -76,7 +79,11 @@ export default function Navbar() {
         </NavigationMenu>
 
         <div className="ml-auto flex items-center space-x-4">
-          <Button variant="ghost">Sign In</Button>
+        <Button variant="ghost" onClick={() => navigate("/login")}>Sign In</Button>
+        <Button variant="outline" onClick={() => navigate("/register")}>Register</Button>
+        <SignedIn>
+            <UserButton afterSignOutUrl="/" />
+          </SignedIn>
           <Button>Get Started</Button>
         </div>
       </div>

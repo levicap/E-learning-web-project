@@ -83,8 +83,7 @@ import {
 } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import Live from './live';
-
-
+import Navbar from './navbar';
 
 
 const navigationItems = [
@@ -123,85 +122,7 @@ function AppLayout({ children }: LayoutProps) {
         )}
 
         {/* Navigation Bar */}
-        <motion.header
-          initial={{ y: -100 }}
-          animate={{ y: 0 }}
-          className="h-16 border-b fixed top-0 left-0 right-0 bg-background/80 backdrop-blur-sm z-50"
-        >
-          <div className="flex h-full items-center px-4 gap-4">
-            <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="lg:hidden">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-[300px]">
-                <NavigationSidebar />
-              </SheetContent>
-            </Sheet>
-            <GraduationCap className="h-8 w-8 text-primary hidden lg:block" />
-            <div className="flex-1 flex items-center gap-4 max-w-xl">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search courses..."
-                  className="pl-9 bg-muted"
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                className="hidden md:flex items-center gap-2 bg-primary/10 rounded-full px-4 py-1.5"
-              >
-                <Trophy className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium">2,450 XP</span>
-              </motion.div>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative">
-                    <Bell className="h-5 w-5" />
-                    <span className="absolute top-2 right-2 h-2 w-2 bg-primary rounded-full" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Notifications</TooltipContent>
-              </Tooltip>
-              <HoverCard>
-                <HoverCardTrigger asChild>
-                  <Button variant="ghost" className="gap-2">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=100" />
-                      <AvatarFallback>JD</AvatarFallback>
-                    </Avatar>
-                    <span className="hidden lg:inline-block">John Doe</span>
-                  </Button>
-                </HoverCardTrigger>
-                <HoverCardContent className="w-80">
-                  <div className="flex justify-between space-x-4">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=100" />
-                      <AvatarFallback>JD</AvatarFallback>
-                    </Avatar>
-                    <div className="space-y-1 flex-1">
-                      <h4 className="text-sm font-semibold">John Doe</h4>
-                      <div className="text-sm text-muted-foreground">Level 12 Developer</div>
-                      <div className="flex items-center gap-4 text-sm">
-                        <div className="flex items-center gap-1">
-                          <Trophy className="h-4 w-4 text-primary" />
-                          <span>2,450 XP</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Award className="h-4 w-4 text-primary" />
-                          <span>15 Badges</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </HoverCardContent>
-              </HoverCard>
-            </div>
-          </div>
-        </motion.header>
+       <Navbar/>
 
         {/* Main Layout */}
         <div className="pt-16 lg:pl-[280px] h-screen">

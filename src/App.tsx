@@ -7,7 +7,7 @@ import Course from './components/course';
 import Live from './components/live';
 import AppLayout from './components/layoutuser';
 import Bos from './components/Live/l';
-import Sign from './components/Login/sign';
+import Sign from './components/auth/sign';
 import Enroll from './components/enroll';
 import CourseDisplay from './components/Courseenroll/coursedisplay';
 import CourseEnroll from './components/Courseenroll/courseenroll';
@@ -21,21 +21,29 @@ import Quiz1 from './components/quiz/quiz1';
 import Gen1 from './components/quizaigen/gen1';
 import Session1 from './components/sessioncrud/session1';
 import CrudTeacher1 from './components/crudteacher/crud'
-import Navbar from './components/navbar';
+// import Navbar from './components/navbar';
 import SidebarContent from './components/sidebar';
 import LayoutTeacher from './components/layoutteacher';
 import Course1 from './components/ta';
-
+import { Toaster } from '@/components/ui/sonner';
+import { store } from '@/lib/store/store';
+import Navbar from '@/components/navbar';
+import Login from '@/components/auth/Login';
+import Register from '@/components/auth/Register';
+import RoleSelection from './components/auth/RoleSelection';
+import AuthRedirector from './components/auth/AuthRedirector ';
 export default function App() {
   return (
+    
     <Router>
       <Routes>
-      
+      <Route path="/role-check" element={<AuthRedirector />} />
+
         <Route path="/home" element={<Landing/>} />
         <Route path="/Dashboard" element={<Test/>} />
         <Route path="/course" element={<Course/>} />
         <Route path="/live" element={<Bos/>} />
-        <Route path="/Login" element={<Sign/>} />
+        <Route path="/Login" element={<Login/>} />
         <Route path="/enroll" element={<CourseEnroll/>} />
         <Route path="/coursedata" element={<CourseDisplay/> } />
         <Route path="/tut" element={<Tut/>} />
@@ -49,6 +57,8 @@ export default function App() {
         <Route path="/session" element={<Session1/>} />
         <Route path="/crud" element={<CrudTeacher1/>} />
         <Route path="/na" element={<LayoutTeacher/>} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/role-selection" element={<RoleSelection />}/>
 
 
 
@@ -61,6 +71,6 @@ export default function App() {
         
       </Routes>
     </Router>
-    
+   
   );}
 
