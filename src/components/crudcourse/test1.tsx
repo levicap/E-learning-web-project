@@ -1,16 +1,16 @@
-import { useState, useEffect } from 'react';
-import { 
-  Bell, 
-  Book, 
-  ChevronDown, 
-  GraduationCap, 
-  LogOut, 
-  Layout, 
-  Menu, 
-  Moon, 
-  Plus, 
-  Search, 
-  Sun, 
+import { useState, useEffect, ChangeEvent } from 'react';
+import {
+  Bell,
+  Book,
+  ChevronDown,
+  GraduationCap,
+  LogOut,
+  Layout,
+  Menu,
+  Moon,
+  Plus,
+  Search,
+  Sun,
   Users,
   Presentation,
   BarChart3,
@@ -72,14 +72,25 @@ function Test() {
   const [totalCourses, setTotalCourses] = useState(0);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [courses, setCourses] = useState<Course[]>([]);
-  
-  // Lesson dialog state for adding a lesson to a course
+
+  // State for new lesson creation
   const [newLesson, setNewLesson] = useState({
     title: '',
     description: '',
     duration: 0,
     videoLink: '',
     videoFile: null as File | null,
+  });
+
+  // State for editing a course
+  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editCourseData, setEditCourseData] = useState({
+    title: '',
+    description: '',
+    category: '',
+    price: 0,
+    imageFile: null as File | null,
   });
 
   useEffect(() => {
@@ -113,12 +124,12 @@ function Test() {
   }, []);
 
   const deleteCourse = (id: string) => {
+    // Optionally, you might also call the backend delete endpoint.
     setCourses(courses.filter(course => course.id !== id));
   };
 
   // Function to add a lesson to an existing course via API
   const addLessonToCourse = (courseId: string) => {
-    // Validate lesson fields
     if (!newLesson.title || !newLesson.description) {
       alert('Please fill in lesson title and description.');
       return;
@@ -139,7 +150,6 @@ function Test() {
       .then(response => response.json())
       .then(data => {
         console.log('Lesson added:', data);
-        // Update the course in local state by adding the new lesson
         setCourses(prevCourses =>
           prevCourses.map(course =>
             course.id === courseId
@@ -147,7 +157,6 @@ function Test() {
               : course
           )
         );
-        // Reset lesson state
         setNewLesson({ title: '', description: '', duration: 0, videoLink: '', videoFile: null });
       })
       .catch(err => console.error('Error adding lesson:', err));
@@ -156,6 +165,59 @@ function Test() {
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
     document.documentElement.classList.toggle('dark');
+  };
+
+  // Open the edit dialog and prepopulate the state
+  const openEditDialog = (course: Course) => {
+    setEditingCourse(course);
+    setEditCourseData({
+      title: course.title,
+      description: course.description,
+      category: course.category,
+      price: course.price,
+      imageFile: null,
+    });
+    setEditDialogOpen(true);
+  };
+
+  // Handle changes in the edit dialog fields
+  const handleEditChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setEditCourseData({ ...editCourseData, [e.target.name]: e.target.value });
+  };
+
+  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setEditCourseData({ ...editCourseData, imageFile: file });
+  };
+
+  // Submit updated course data to the backend
+  const updateCourse = () => {
+    if (!editingCourse) return;
+    const formData = new FormData();
+    formData.append('title', editCourseData.title);
+    formData.append('description', editCourseData.description);
+    formData.append('category', editCourseData.category);
+    formData.append('price', editCourseData.price.toString());
+    // If a new image is selected, append it
+    if (editCourseData.imageFile) {
+      formData.append('image', editCourseData.imageFile);
+    }
+    fetch(`http://localhost:5000/api/courses/${editingCourse.id}`, {
+      method: 'PUT',
+      body: formData,
+    })
+      .then(response => response.json())
+      .then(updatedCourse => {
+        // Update local state for courses
+        setCourses(prevCourses =>
+          prevCourses.map(course =>
+            course.id === editingCourse.id ? updatedCourse : course
+          )
+        );
+        setEditDialogOpen(false);
+        setEditingCourse(null);
+      })
+      .catch(err => console.error('Error updating course:', err));
   };
 
   return (
@@ -211,7 +273,6 @@ function Test() {
                   </p>
                 </CardContent>
               </Card>
-             
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Active Courses</CardTitle>
@@ -289,8 +350,8 @@ function Test() {
                     <div className="mb-4">
                       <h4 className="font-semibold mb-2">Course Lessons</h4>
                       <div className="space-y-2">
-                        {course.lessons.map((lesson, index) => (
-                          <div key={lesson._id} className="flex items-center justify-between bg-muted p-2 rounded-md">
+                        {course.lessons.map((lesson) => (
+                          <div key={lesson.id} className="flex items-center justify-between bg-muted p-2 rounded-md">
                             <div className="flex items-center gap-2">
                               <FileVideo className="h-4 w-4" />
                               <span className="text-sm">{lesson.title}</span>
@@ -300,10 +361,18 @@ function Test() {
                         ))}
                       </div>
                     </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" className="flex-1" onClick={() => openEditDialog(course)}>
+                        Edit Course
+                      </Button>
+                      <Button variant="destructive" onClick={() => deleteCourse(course.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                     {/* Add Lesson Dialog for this course */}
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button variant="outline" className="w-full mb-2">
+                        <Button variant="outline" className="w-full mt-2">
                           <Plus className="h-4 w-4 mr-2" />
                           Add Lesson
                         </Button>
@@ -373,49 +442,12 @@ function Test() {
                           </div>
                         </div>
                         <DialogFooter>
-                          <Button
-                            onClick={() => {
-                              // Call the API to add the lesson to the course
-                              const formData = new FormData();
-                              formData.append('title', newLesson.title);
-                              formData.append('description', newLesson.description);
-                              formData.append('duration', newLesson.duration ? newLesson.duration.toString() : '0');
-                              formData.append('videoLink', newLesson.videoLink);
-                              if (newLesson.videoFile) {
-                                formData.append('video', newLesson.videoFile);
-                              }
-                              fetch(`http://localhost:5000/api/courses/${course._id}/lessons`, {
-                                method: 'POST',
-                                body: formData,
-                              })
-                                .then((response) => response.json())
-                                .then((data) => {
-                                  console.log('Lesson added:', data);
-                                  // Update the courses state with the new lesson added
-                                  setCourses((prevCourses) =>
-                                    prevCourses.map((c) =>
-                                      c.id === course._id ? { ...c, lessons: [...c.lessons, data.lesson] } : c
-                                    )
-                                  );
-                                  // Reset newLesson state
-                                  setNewLesson({ title: '', description: '', duration: 0, videoLink: '', videoFile: null });
-                                })
-                                .catch((err) => {
-                                  console.error('Error adding lesson:', err);
-                                });
-                            }}
-                          >
+                          <Button onClick={() => addLessonToCourse(course.id)}>
                             Add Lesson
                           </Button>
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>
-                    <div className="flex gap-2">
-                      <Button variant="outline" className="flex-1">Edit Course</Button>
-                      <Button variant="destructive" onClick={() => deleteCourse(course.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
                   </div>
                 </Card>
               ))}
@@ -423,6 +455,73 @@ function Test() {
           </div>
         </main>
       </div>
+
+      {/* Edit Course Dialog */}
+      {editDialogOpen && editingCourse && (
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Course</DialogTitle>
+              <DialogDescription>
+                Update details for {editingCourse.title}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-title">Title</Label>
+                <Input
+                  id="edit-title"
+                  name="title"
+                  value={editCourseData.title}
+                  onChange={handleEditChange}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-description">Description</Label>
+                <Textarea
+                  id="edit-description"
+                  name="description"
+                  value={editCourseData.description}
+                  onChange={handleEditChange}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-category">Category</Label>
+                <Input
+                  id="edit-category"
+                  name="category"
+                  value={editCourseData.category}
+                  onChange={handleEditChange}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-price">Price</Label>
+                <Input
+                  id="edit-price"
+                  name="price"
+                  type="number"
+                  value={editCourseData.price || ''}
+                  onChange={(e) =>
+                    setEditCourseData({ ...editCourseData, price: parseFloat(e.target.value) })
+                  }
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-image">Course Image (optional)</Label>
+                <Input
+                  id="edit-image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={updateCourse}>Save Changes</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
