@@ -1,12 +1,11 @@
 import exp from "constants";
-import AppLayout from "@/components/layoutuser";
-
+import LayoutTeacher from "../layoutteacher";
 import Sessioncrud from "./session";
 
 export default function Session1() {
   return (
-    <AppLayout>
+    <LayoutTeacher>
       <Sessioncrud />
-    </AppLayout>
+    </LayoutTeacher>
   );
 }

@@ -60,7 +60,9 @@ const CourseSelection = ({
       {courses.map((course) => (
         <div
           key={course.id}
-          className={p-2 border rounded cursor-pointer ${selectedCourse?.id === course.id ? 'bg-blue-100' : 'hover:bg-gray-100'}}
+          className={`p-2 border rounded cursor-pointer ${
+            selectedCourse?.id === course.id ? 'bg-blue-100' : 'hover:bg-gray-100'
+          }`}
           onClick={() => onSelectCourse(course)}
         >
           <h3>{course.title}</h3>
@@ -88,7 +90,7 @@ const LessonSelection = ({
   useEffect(() => {
     if (!courseId) return;
     setLoading(true);
-    fetch(http://localhost:5000/api/courses/${courseId})
+    fetch(`http://localhost:5000/api/courses/${courseId}`)
       .then((res) => res.json())
       .then((data) => {
         const formattedLessons = data.lessons.map((lesson: any) => ({
@@ -114,7 +116,9 @@ const LessonSelection = ({
       {lessons.map((lesson) => (
         <div
           key={lesson.id}
-          className={p-2 border rounded cursor-pointer ${selectedLesson?.id === lesson.id ? 'bg-green-100' : 'hover:bg-gray-100'}}
+          className={`p-2 border rounded cursor-pointer ${
+            selectedLesson?.id === lesson.id ? 'bg-green-100' : 'hover:bg-gray-100'
+          }`}
           onClick={() => onSelectLesson(lesson)}
         >
           <h4>{lesson.title}</h4>
@@ -137,7 +141,7 @@ const QuizManager = ({
   const [error, setError] = useState<string | null>(null);
 
   const handleQuizSubmit = () => {
-    fetch(http://localhost:5000/api/courses/${courseId}/lessons/${lessonId}/quiz, {
+    fetch(`http://localhost:5000/api/courses/${courseId}/lessons/${lessonId}/quiz`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ quiz }),
@@ -199,7 +203,7 @@ const AssignmentManager = ({
     formData.append('title', title);
     formData.append('assignment', file);
 
-    fetch(http://localhost:5000/api/courses/${courseId}/lessons/${lessonId}/assignment, {
+    fetch(`http://localhost:5000/api/courses/${courseId}/lessons/${lessonId}/assignment`, {
       method: 'POST',
       body: formData,
     })
@@ -259,7 +263,7 @@ const CodeExampleManager = ({ courseId }: { courseId: string }) => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(http://localhost:5000/api/courses/${courseId})
+    fetch(`http://localhost:5000/api/courses/${courseId}`)
       .then((res) => res.json())
       .then((data) => {
         setCodeExamples(data.codeExamples || []);
@@ -271,7 +275,7 @@ const CodeExampleManager = ({ courseId }: { courseId: string }) => {
     e.preventDefault();
     const newCodeExample = { title, description, language, code };
 
-    fetch(http://localhost:5000/api/courses/${courseId}/codeExamples, {
+    fetch(`http://localhost:5000/api/courses/${courseId}/codeExamples`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newCodeExample),
