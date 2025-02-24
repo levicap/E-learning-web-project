@@ -31,6 +31,8 @@ import Login from '@/components/auth/Login';
 import Register from '@/components/auth/Register';
 import RoleSelection from './components/auth/RoleSelection';
 import AuthRedirector from './components/auth/AuthRedirector ';
+import CourseContent from './components/coursecontent/coursecontent';
+
 
 export default function App() {
   return (
@@ -63,6 +65,7 @@ export default function App() {
         <Route path="/na" element={<LayoutTeacher/>} />
         <Route path="/register" element={<Register />} />
         <Route path="/role-selection" element={<RoleSelection />}/>
+        <Route path="/course-content" element={<CourseContent />}/>
 
 
 
