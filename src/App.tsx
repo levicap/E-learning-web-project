@@ -20,7 +20,6 @@ import Quiz1 from './components/quiz/quiz1';
 import Gen1 from './components/quizaigen/gen1';
 import Session1 from './components/sessioncrud/session1';
 import CrudTeacher1 from './components/crudteacher/crud';
-import SidebarContent from './components/sidebar';
 import LayoutTeacher from './components/layoutteacher';
 import Course1 from './components/ta';
 import { Toaster } from '@/components/ui/sonner';
