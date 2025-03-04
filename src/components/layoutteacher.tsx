@@ -2,6 +2,7 @@ import SidebarContent from "./sidebar";
 import React, { ReactNode } from "react";
 import { useState } from "react";
 import { cn } from '@/lib/utils';
+import Navbar from "./Landing/Navbar";
 
 type LayoutProps = {
     children: ReactNode;

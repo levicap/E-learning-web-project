@@ -1,16 +1,16 @@
-import { useState, useEffect } from 'react';
-import { 
-  Bell, 
-  Book, 
-  ChevronDown, 
-  GraduationCap, 
-  LogOut, 
-  Layout, 
-  Menu, 
-  Moon, 
-  Plus, 
-  Search, 
-  Sun, 
+import { useState, useEffect, ChangeEvent } from 'react';
+import {
+  Bell,
+  Book,
+  Pencil,
+  GraduationCap,
+  LogOut,
+  Layout,
+  Menu,
+  Moon,
+  Plus,
+  Search,
+  Sun,
   Users,
   Presentation,
   BarChart3,
@@ -45,112 +45,358 @@ import { Separator } from "@/components/ui/separator";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import CreateCourseDialog from './create';
 import SidebarContent from './sidebar';
+import { z } from 'zod';
 
+//
+// TypeScript Interfaces
+//
 interface Lesson {
-  id: string;
+  _id: string;
   title: string;
-  videoUrl: string;
+  description: string;
   duration: number;
+  videoUrl: string;
 }
 
 interface Course {
-  id: string;
+  _id: string;
   title: string;
   description: string;
   instructor: string;
-  students: number;
-  image: string;
-  progress: number;
-  lessons: Lesson[];
   category: string;
   price: number;
+  image: string;
+  lessons: Lesson[];
+  students: number;
+  progress: number;
 }
 
+//
+// Zod Schemas for Validation
+//
+const EditCourseSchema = z.object({
+  title: z.string().min(1, "Course title is required"),
+  description: z.string().min(1, "Course description is required"),
+  category: z.string().min(1, "Category is required"),
+  price: z.number().nonnegative("Price must be non-negative"),
+  imageFile: z.preprocess(
+    (val) => (val instanceof File ? val : undefined),
+    z.instanceof(File).optional()
+  ),
+});
+
+const EditLessonSchema = z.object({
+  title: z.string().min(1, "Lesson title is required"),
+  description: z.string().optional(),
+  duration: z.number().nonnegative("Duration must be non-negative"),
+  // When editing a lesson, you can either update the video URL or upload a new video.
+  videoFile: z.preprocess(
+    (val) => (val instanceof File ? val : undefined),
+    z.instanceof(File).optional()
+  ),
+  videoUrl: z
+    .string()
+    .optional()
+    .refine((val) => !val || /^(https?:\/\/)/.test(val), { message: "Invalid URL" }),
+});
+
+const AddLessonSchema = z.object({
+  title: z.string().min(1, "Lesson title is required"),
+  description: z.string().optional(),
+  duration: z.number().nonnegative("Duration must be non-negative"),
+  videoLink: z
+    .string()
+    .optional()
+    .refine((val) => !val || /^(https?:\/\/)/.test(val), { message: "Invalid URL" }),
+  videoFile: z.preprocess(
+    (val) => (val instanceof File ? val : undefined),
+    z.instanceof(File).optional()
+  ),
+});
+
+//
+// Main Component
+//
 function Test() {
+  // --- Global States ---
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [totalCourses, setTotalCourses] = useState<number>(0);
+  const [totalRevenue, setTotalRevenue] = useState<number>(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [totalCourses, setTotalCourses] = useState(0);
-  const [totalRevenue, setTotalRevenue] = useState(0);
-  const [courses, setCourses] = useState<Course[]>([]);
-  
-  // Lesson dialog state for adding a lesson to a course
-  const [newLesson, setNewLesson] = useState({
+
+  // --- Course Editing State ---
+  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+  const [editCourseData, setEditCourseData] = useState({
+    title: '',
+    description: '',
+    category: '',
+    price: 0,
+    imageFile: null as File | null,
+  });
+  const [editCourseDialogOpen, setEditCourseDialogOpen] = useState<boolean>(false);
+  const [editCourseError, setEditCourseError] = useState<string>('');
+
+  // --- Lesson Editing State ---
+  const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
+  const [editLessonData, setEditLessonData] = useState({
+    title: '',
+    description: '',
+    duration: 0,
+    videoUrl: '',
+    videoFile: null as File | null,
+  });
+  const [editLessonDialogOpen, setEditLessonDialogOpen] = useState<boolean>(false);
+  const [editLessonError, setEditLessonError] = useState<string>('');
+
+  // --- Add Lesson State ---
+  const [addLessonDialogOpen, setAddLessonDialogOpen] = useState<boolean>(false);
+  const [newLessonData, setNewLessonData] = useState({
     title: '',
     description: '',
     duration: 0,
     videoLink: '',
     videoFile: null as File | null,
   });
+  const [currentCourseForLesson, setCurrentCourseForLesson] = useState<Course | null>(null);
+  const [addLessonError, setAddLessonError] = useState<string>('');
 
-  useEffect(() => {
-    const fetchTotal = async () => {
-      try {
-        const response = await fetch('http://localhost:5000/api/courses/total');
-        const data = await response.json();
-        setTotalCourses(data.totalCourses);
-        setTotalRevenue(data.totalRevenue);
-      } catch (error) {
-        console.error('Error fetching total:', error);
-      }
-    };
-    fetchTotal();
-  }, []);
+  // --- Delete Confirmation State ---
+  const [deleteCourseDialogOpen, setDeleteCourseDialogOpen] = useState<boolean>(false);
+  const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
 
+  // --- Data Fetching ---
   useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        const response = await fetch('http://localhost:5000/api/courses');
-        if (!response.ok) {
-          throw new Error('Failed to fetch courses');
-        }
-        const data: Course[] = await response.json();
-        setCourses(data);
-      } catch (error) {
-        console.error('Error fetching courses:', error);
-      }
-    };
     fetchCourses();
+    fetchTotalStats();
   }, []);
 
-  const deleteCourse = (id: string) => {
-    setCourses(courses.filter(course => course.id !== id));
+  const fetchCourses = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/courses');
+      const data = await response.json();
+      setCourses(data);
+    } catch (err) {
+      console.error('Error fetching courses:', err);
+    }
   };
 
-  // Function to add a lesson to an existing course via API
-  const addLessonToCourse = (courseId: string) => {
-    // Validate lesson fields
-    if (!newLesson.title || !newLesson.description) {
-      alert('Please fill in lesson title and description.');
-      return;
+  const fetchTotalStats = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/courses/total');
+      const data = await response.json();
+      setTotalCourses(data.totalCourses);
+      setTotalRevenue(data.totalRevenue);
+    } catch (err) {
+      console.error('Error fetching total stats:', err);
     }
-    const formData = new FormData();
-    formData.append('title', newLesson.title);
-    formData.append('description', newLesson.description);
-    formData.append('duration', newLesson.duration.toString());
-    formData.append('videoLink', newLesson.videoLink);
-    if (newLesson.videoFile) {
-      formData.append('video', newLesson.videoFile);
-    }
+  };
 
-    fetch(`http://localhost:5000/api/courses/${courseId}/lessons`, {
-      method: 'POST',
-      body: formData,
-    })
-      .then(response => response.json())
-      .then(data => {
-        console.log('Lesson added:', data);
-        // Update the course in local state by adding the new lesson
-        setCourses(prevCourses =>
-          prevCourses.map(course =>
-            course.id === courseId
-              ? { ...course, lessons: [...course.lessons, data.lesson] }
-              : course
-          )
-        );
-        // Reset lesson state
-        setNewLesson({ title: '', description: '', duration: 0, videoLink: '', videoFile: null });
-      })
-      .catch(err => console.error('Error adding lesson:', err));
+  // --- Delete Course Handlers ---
+  const openDeleteCourseDialog = (course: Course) => {
+    setCourseToDelete(course);
+    setDeleteCourseDialogOpen(true);
+  };
+
+  const confirmDeleteCourse = async () => {
+    if (!courseToDelete) return;
+    try {
+      const response = await fetch(`http://localhost:5000/api/courses/${courseToDelete._id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        setCourses(courses.filter(c => c._id !== courseToDelete._id));
+        setDeleteCourseDialogOpen(false);
+        setCourseToDelete(null);
+      }
+    } catch (err) {
+      console.error('Error deleting course:', err);
+    }
+  };
+
+  // --- Course Editing Handlers ---
+  const openEditCourseDialog = (course: Course) => {
+    setEditingCourse(course);
+    setEditCourseData({
+      title: course.title,
+      description: course.description,
+      category: course.category,
+      price: course.price,
+      imageFile: null,
+    });
+    setEditCourseError('');
+    setEditCourseDialogOpen(true);
+  };
+
+  const handleEditCourseChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setEditCourseData(prev => ({
+      ...prev,
+      [name]: name === 'price' ? parseFloat(value) : value,
+    }));
+  };
+
+  const handleCourseImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setEditCourseData(prev => ({ ...prev, imageFile: file }));
+  };
+
+  const updateCourse = async () => {
+    if (!editingCourse) return;
+    try {
+      const parsedData = EditCourseSchema.parse(editCourseData);
+      const formData = new FormData();
+      formData.append('title', parsedData.title);
+      formData.append('description', parsedData.description);
+      formData.append('category', parsedData.category);
+      formData.append('price', parsedData.price.toString());
+      if (parsedData.imageFile) {
+        formData.append('image', parsedData.imageFile);
+      }
+      const res = await fetch(`http://localhost:5000/api/courses/${editingCourse._id}`, {
+        method: 'PUT',
+        body: formData,
+      });
+      const updatedCourse = await res.json();
+      setCourses(prev => prev.map(c => c._id === updatedCourse._id ? updatedCourse : c));
+      setEditCourseDialogOpen(false);
+      setEditingCourse(null);
+    } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        setEditCourseError(err.errors.map(e => e.message).join(", "));
+      } else {
+        setEditCourseError("Error updating course");
+      }
+    }
+  };
+
+  // --- Lesson Editing Handlers ---
+  const openEditLessonDialog = (course: Course, lesson: Lesson) => {
+    setEditingCourse(course);
+    setEditingLesson(lesson);
+    setEditLessonData({
+      title: lesson.title,
+      description: lesson.description,
+      duration: lesson.duration,
+      videoUrl: lesson.videoUrl,
+      videoFile: null,
+    });
+    setEditLessonError('');
+    setEditLessonDialogOpen(true);
+  };
+
+  const handleEditLessonChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setEditLessonData(prev => ({
+      ...prev,
+      [name]: name === 'duration' ? parseFloat(value) : value,
+    }));
+  };
+
+  const handleLessonVideoChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setEditLessonData(prev => ({ ...prev, videoFile: file }));
+  };
+
+  const updateLesson = async () => {
+    if (!editingCourse || !editingLesson) return;
+    try {
+      const parsedData = EditLessonSchema.parse(editLessonData);
+      const formData = new FormData();
+      formData.append('title', parsedData.title);
+      formData.append('description', parsedData.description || '');
+      formData.append('duration', parsedData.duration.toString());
+      if (parsedData.videoFile) {
+        formData.append('video', parsedData.videoFile);
+      } else {
+        formData.append('videoUrl', parsedData.videoUrl || '');
+      }
+      const res = await fetch(`http://localhost:5000/api/courses/${editingCourse._id}/lessons/${editingLesson._id}`, {
+        method: 'PUT',
+        body: formData,
+      });
+      const updatedLesson = await res.json();
+      setCourses(prev => prev.map(course => {
+        if (course._id === editingCourse._id) {
+          return {
+            ...course,
+            lessons: course.lessons.map(lesson =>
+              lesson._id === editingLesson._id ? updatedLesson : lesson
+            ),
+          };
+        }
+        return course;
+      }));
+      setEditLessonDialogOpen(false);
+      setEditingLesson(null);
+    } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        setEditLessonError(err.errors.map(e => e.message).join(", "));
+      } else {
+        setEditLessonError("Error updating lesson");
+      }
+    }
+  };
+
+  // --- Add Lesson Handlers ---
+  const openAddLessonDialog = (course: Course) => {
+    setCurrentCourseForLesson(course);
+    setNewLessonData({
+      title: '',
+      description: '',
+      duration: 0,
+      videoLink: '',
+      videoFile: null,
+    });
+    setAddLessonError('');
+    setAddLessonDialogOpen(true);
+  };
+
+  const handleNewLessonChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setNewLessonData(prev => ({
+      ...prev,
+      [name]: name === 'duration' ? parseFloat(value) : value,
+    }));
+  };
+
+  const handleNewLessonVideoChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setNewLessonData(prev => ({ ...prev, videoFile: file }));
+  };
+
+  const addLessonToCourse = async () => {
+    if (!currentCourseForLesson) return;
+    try {
+      const parsedData = AddLessonSchema.parse(newLessonData);
+      const formData = new FormData();
+      formData.append('title', parsedData.title);
+      formData.append('description', parsedData.description || '');
+      formData.append('duration', parsedData.duration.toString());
+      formData.append('videoLink', parsedData.videoLink || '');
+      if (parsedData.videoFile) {
+        formData.append('video', parsedData.videoFile);
+      }
+      const res = await fetch(`http://localhost:5000/api/courses/${currentCourseForLesson._id}/lessons`, {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      setCourses(prev => prev.map(course => {
+        if (course._id === currentCourseForLesson._id) {
+          return { ...course, lessons: [...course.lessons, data.lesson] };
+        }
+        return course;
+      }));
+      setAddLessonDialogOpen(false);
+      setCurrentCourseForLesson(null);
+    } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        setAddLessonError(err.errors.map(e => e.message).join(", "));
+      } else {
+        setAddLessonError("Error adding lesson");
+      }
+    }
   };
 
   const toggleTheme = () => {
@@ -160,28 +406,7 @@ function Test() {
 
   return (
     <div className={cn("min-h-screen bg-background", isDarkMode ? 'dark' : '')}>
-      {/* Navbar */}
-      <nav className="border-b fixed top-0 z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex h-16 items-center px-4">
-          <div className="flex items-center gap-2 font-semibold text-lg">
-            <div className="bg-primary/10 p-2 rounded-lg">
-              <GraduationCap className="h-6 w-6 text-primary" />
-            </div>
-            <span>EduDash Pro</span>
-          </div>
-          <div className="flex-1 flex items-center justify-end gap-4">
-            <div className="relative w-96 hidden md:block">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search courses, lessons, or instructors..." className="pl-8" />
-            </div>
-            <Button size="icon" variant="ghost" onClick={toggleTheme} className="hover:bg-muted">
-              {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            </Button>
-          </div>
-        </div>
-      </nav>
-
-      {/* Main Content */}
+      {/* Navbar could be added here */}
       <div className="flex pt-16">
         {/* Sidebar */}
         <aside className={cn(
@@ -192,10 +417,7 @@ function Test() {
         </aside>
 
         {/* Main Content */}
-        <main className={cn(
-          "flex-1 p-6 transition-all bg-muted/30",
-          isSidebarOpen ? "md:ml-64" : ""
-        )}>
+        <main className={cn("flex-1 p-6 transition-all bg-muted/30", isSidebarOpen ? "md:ml-64" : "")}>
           <div className="flex flex-col gap-6">
             {/* Stats Overview */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -206,12 +428,9 @@ function Test() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">2,579</div>
-                  <p className="text-xs text-muted-foreground">
-                    +20.1% from last month
-                  </p>
+                  <p className="text-xs text-muted-foreground">+20.1% from last month</p>
                 </CardContent>
               </Card>
-             
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Active Courses</CardTitle>
@@ -219,9 +438,7 @@ function Test() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{totalCourses}</div>
-                  <p className="text-xs text-muted-foreground">
-                    +12 new this month
-                  </p>
+                  <p className="text-xs text-muted-foreground">+12 new this month</p>
                 </CardContent>
               </Card>
               <Card>
@@ -231,9 +448,7 @@ function Test() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">${totalRevenue}</div>
-                  <p className="text-xs text-muted-foreground">
-                    +15.3% from last month
-                  </p>
+                  <p className="text-xs text-muted-foreground">+15.3% from last month</p>
                 </CardContent>
               </Card>
             </div>
@@ -249,8 +464,8 @@ function Test() {
 
             {/* Course Grid */}
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {courses.map((course) => (
-                <Card key={course.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+              {courses.map(course => (
+                <Card key={course._id} className="overflow-hidden hover:shadow-lg transition-shadow">
                   <CardHeader className="p-0">
                     <div className="relative">
                       <img
@@ -289,131 +504,33 @@ function Test() {
                     <div className="mb-4">
                       <h4 className="font-semibold mb-2">Course Lessons</h4>
                       <div className="space-y-2">
-                        {course.lessons.map((lesson, index) => (
+                        {course.lessons.map(lesson => (
                           <div key={lesson._id} className="flex items-center justify-between bg-muted p-2 rounded-md">
                             <div className="flex items-center gap-2">
                               <FileVideo className="h-4 w-4" />
                               <span className="text-sm">{lesson.title}</span>
                             </div>
-                            <Badge variant="outline">{lesson.duration} min</Badge>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline">{lesson.duration} min</Badge>
+                              <Button variant="outline" size="icon" onClick={() => openEditLessonDialog(course, lesson)}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         ))}
                       </div>
                     </div>
-                    {/* Add Lesson Dialog for this course */}
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" className="w-full mb-2">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Lesson
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-md">
-                        <DialogHeader>
-                          <DialogTitle>Add New Lesson</DialogTitle>
-                          <DialogDescription>
-                            Add a new lesson to {course.title}
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                          <div className="grid gap-2">
-                            <Label htmlFor="lesson-title">Lesson Title</Label>
-                            <Input
-                              id="lesson-title"
-                              value={newLesson.title}
-                              onChange={(e) => setNewLesson({ ...newLesson, title: e.target.value })}
-                            />
-                          </div>
-                          <div className="grid gap-2">
-                            <Label htmlFor="lesson-description">Lesson Description</Label>
-                            <Textarea
-                              id="lesson-description"
-                              value={newLesson.description}
-                              onChange={(e) => setNewLesson({ ...newLesson, description: e.target.value })}
-                            />
-                          </div>
-                          <div className="grid gap-2">
-                            <Label htmlFor="lesson-duration">Duration (minutes)</Label>
-                            <Input
-                              id="lesson-duration"
-                              type="number"
-                              placeholder="e.g., 15"
-                              value={newLesson.duration || ''}
-                              onChange={(e) => setNewLesson({ ...newLesson, duration: parseFloat(e.target.value) })}
-                            />
-                          </div>
-                          <div className="grid gap-2">
-                            <Label htmlFor="videoLink">Video URL (optional)</Label>
-                            <Input
-                              id="videoLink"
-                              placeholder="e.g., https://youtube.com/..."
-                              value={newLesson.videoLink}
-                              onChange={(e) => setNewLesson({ ...newLesson, videoLink: e.target.value })}
-                            />
-                          </div>
-                          <div className="grid gap-2">
-                            <Label htmlFor="videoFile">Upload Video (optional)</Label>
-                            <Input
-                              id="videoFile"
-                              type="file"
-                              accept="video/*"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                  setNewLesson({ ...newLesson, videoFile: file });
-                                }
-                              }}
-                            />
-                            {newLesson.videoFile && (
-                              <div>
-                                <strong>Selected Video: </strong>
-                                {newLesson.videoFile.name}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <DialogFooter>
-                          <Button
-                            onClick={() => {
-                              // Call the API to add the lesson to the course
-                              const formData = new FormData();
-                              formData.append('title', newLesson.title);
-                              formData.append('description', newLesson.description);
-                              formData.append('duration', newLesson.duration ? newLesson.duration.toString() : '0');
-                              formData.append('videoLink', newLesson.videoLink);
-                              if (newLesson.videoFile) {
-                                formData.append('video', newLesson.videoFile);
-                              }
-                              fetch(`http://localhost:5000/api/courses/${course._id}/lessons`, {
-                                method: 'POST',
-                                body: formData,
-                              })
-                                .then((response) => response.json())
-                                .then((data) => {
-                                  console.log('Lesson added:', data);
-                                  // Update the courses state with the new lesson added
-                                  setCourses((prevCourses) =>
-                                    prevCourses.map((c) =>
-                                      c.id === course._id ? { ...c, lessons: [...c.lessons, data.lesson] } : c
-                                    )
-                                  );
-                                  // Reset newLesson state
-                                  setNewLesson({ title: '', description: '', duration: 0, videoLink: '', videoFile: null });
-                                })
-                                .catch((err) => {
-                                  console.error('Error adding lesson:', err);
-                                });
-                            }}
-                          >
-                            Add Lesson
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
                     <div className="flex gap-2">
-                      <Button variant="outline" className="flex-1">Edit Course</Button>
-                      <Button variant="destructive" onClick={() => deleteCourse(course.id)}>
+                      <Button variant="outline" className="flex-1" onClick={() => openEditCourseDialog(course)}>
+                        <Pencil className="h-4 w-4 mr-3" />
+                        Edit Course
+                      </Button>
+                      <Button variant="destructive" onClick={() => openDeleteCourseDialog(course)}>
                         <Trash2 className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" onClick={() => openAddLessonDialog(course)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Lesson
                       </Button>
                     </div>
                   </div>
@@ -423,6 +540,126 @@ function Test() {
           </div>
         </main>
       </div>
+
+      {/* Delete Course Confirmation Dialog */}
+      <Dialog open={deleteCourseDialogOpen} onOpenChange={setDeleteCourseDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Course</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete the course "{courseToDelete?.title}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteCourseDialogOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={confirmDeleteCourse}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Course Dialog */}
+      <Dialog open={editCourseDialogOpen} onOpenChange={setEditCourseDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Course</DialogTitle>
+            <DialogDescription>Update details for the course.</DialogDescription>
+          </DialogHeader>
+          {editCourseError && <p className="text-red-500 mb-2">{editCourseError}</p>}
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-title">Title</Label>
+              <Input id="edit-title" name="title" value={editCourseData.title} onChange={handleEditCourseChange} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea id="edit-description" name="description" value={editCourseData.description} onChange={handleEditCourseChange} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-category">Category</Label>
+              <Input id="edit-category" name="category" value={editCourseData.category} onChange={handleEditCourseChange} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-price">Price</Label>
+              <Input id="edit-price" name="price" type="number" value={editCourseData.price || ''} onChange={handleEditCourseChange} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-image">Course Image (optional)</Label>
+              <Input id="edit-image" type="file" name="image" onChange={handleCourseImageChange} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={updateCourse}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Lesson Dialog */}
+      <Dialog open={editLessonDialogOpen} onOpenChange={setEditLessonDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Lesson</DialogTitle>
+            <DialogDescription>Update lesson details.</DialogDescription>
+          </DialogHeader>
+          {editLessonError && <p className="text-red-500 mb-2">{editLessonError}</p>}
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-lesson-title">Title</Label>
+              <Input id="edit-lesson-title" name="title" value={editLessonData.title} onChange={handleEditLessonChange} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-lesson-description">Description</Label>
+              <Textarea id="edit-lesson-description" name="description" value={editLessonData.description} onChange={handleEditLessonChange} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-lesson-duration">Duration (minutes)</Label>
+              <Input id="edit-lesson-duration" name="duration" type="number" value={editLessonData.duration || ''} onChange={handleEditLessonChange} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-lesson-video">Upload New Video (optional)</Label>
+              <Input id="edit-lesson-video" type="file" name="video" onChange={handleLessonVideoChange} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={updateLesson}>Save Lesson Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Lesson Dialog */}
+      <Dialog open={addLessonDialogOpen} onOpenChange={setAddLessonDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Lesson</DialogTitle>
+            <DialogDescription>Add a new lesson to the course.</DialogDescription>
+          </DialogHeader>
+          {addLessonError && <p className="text-red-500 mb-2">{addLessonError}</p>}
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="new-lesson-title">Title</Label>
+              <Input id="new-lesson-title" name="title" value={newLessonData.title} onChange={handleNewLessonChange} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="new-lesson-description">Description</Label>
+              <Textarea id="new-lesson-description" name="description" value={newLessonData.description} onChange={handleNewLessonChange} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="new-lesson-duration">Duration (minutes)</Label>
+              <Input id="new-lesson-duration" name="duration" type="number" value={newLessonData.duration || ''} onChange={handleNewLessonChange} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="new-lesson-videoLink">Video URL (optional)</Label>
+              <Input id="new-lesson-videoLink" name="videoLink" value={newLessonData.videoLink} onChange={handleNewLessonChange} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="new-lesson-video">Upload Video (optional)</Label>
+              <Input id="new-lesson-video" type="file" name="video" onChange={handleNewLessonVideoChange} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={addLessonToCourse}>Add Lesson</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

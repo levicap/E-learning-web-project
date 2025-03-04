@@ -1,10 +1,45 @@
-import { useState } from 'react'; 
+import { useState } from 'react';
+import { z } from 'zod';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Upload } from 'lucide-react';
+
+// Define a Zod schema for lessons
+const LessonSchema = z.object({
+  title: z.string().min(1, "Lesson title is required"),
+  description: z.string().min(1, "Lesson description is required"),
+  duration: z.number().min(0, "Duration must be a non-negative number"),
+  // Allow videoLink to be empty or a valid URL (must start with http or https if provided)
+  videoLink: z.string().optional().refine(
+    (val) => !val || /^(https?:\/\/)/.test(val),
+    { message: "Video link must be a valid URL" }
+  ),
+  // Use preprocess to convert non-File values (like null) to undefined so that the schema handles it correctly.
+  videoFile: z.preprocess(
+    (val) => (val instanceof File ? val : undefined),
+    z.instanceof(File).optional()
+  ),
+});
+
+// Define a Zod schema for courses
+const CourseSchema = z.object({
+  title: z.string().min(1, "Course title is required"),
+  description: z.string().min(1, "Course description is required"),
+  instructor: z.string().min(1, "Instructor is required"),
+  price: z.number().min(0, "Price must be a non-negative number"),
+  // Preprocess the image to ensure that only a File passes validation
+  image: z.preprocess(
+    (val) => (val instanceof File ? val : undefined),
+    z.instanceof(File, { message: "Cover image is required" })
+  ),
+  category: z.string().min(1, "Category is required"),
+  lessons: z.array(LessonSchema),
+  students: z.array(z.any()).optional(),
+  progress: z.array(z.any()).optional(),
+});
 
 const CreateCourseDialog = () => {
   const [newCourse, setNewCourse] = useState({
@@ -22,7 +57,7 @@ const CreateCourseDialog = () => {
   const [newLesson, setNewLesson] = useState({
     title: '',
     description: '',
-    duration: 0,           // New field for duration (in minutes)
+    duration: 0,           // Duration in minutes
     videoLink: '',
     videoFile: null,
   });
@@ -45,8 +80,18 @@ const CreateCourseDialog = () => {
     }
   };
 
-  // Add lesson to the course
+  // Add lesson to the course with Zod validation
   const addLesson = () => {
+    // Validate newLesson data
+    const lessonResult = LessonSchema.safeParse(newLesson);
+    if (!lessonResult.success) {
+      const lessonErrors = lessonResult.error.errors.map(err => err.message).join(", ");
+      setError(lessonErrors);
+      return;
+    }
+    
+    // Clear any previous error before adding
+    setError('');
     setNewCourse({
       ...newCourse,
       lessons: [...newCourse.lessons, { ...newLesson }],
@@ -71,12 +116,18 @@ const CreateCourseDialog = () => {
     setError('');
   };
 
-  // Create course and send to API
+  // Create course and send to API with Zod validation
   const addCourse = () => {
-    if (!newCourse.title || !newCourse.description || !newCourse.instructor || !newCourse.image || !newCourse.category) {
-      setError('All fields must be filled.');
+    // Validate the course data using Zod
+    const courseResult = CourseSchema.safeParse(newCourse);
+    if (!courseResult.success) {
+      const courseErrors = courseResult.error.errors.map(err => err.message).join(", ");
+      setError(courseErrors);
       return;
     }
+
+    // Clear any error if validation passes
+    setError('');
 
     const formData = new FormData();
     formData.append('title', newCourse.title);
@@ -204,9 +255,6 @@ const CreateCourseDialog = () => {
               />
             )}
           </div>
-
-          
-        
 
           {/* Lessons Section */}
           <div className="grid gap-4 mt-4">

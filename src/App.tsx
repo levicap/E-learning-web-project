@@ -29,7 +29,16 @@ import Login from '@/components/auth/Login';
 import Register from '@/components/auth/Register';
 import RoleSelection from './components/auth/RoleSelection';
 import AuthRedirector from './components/auth/AuthRedirector ';
+
 import VideoApp from './components/videoChat/VideoApp';
+=======
+import CourseContent from './components/coursecontent/coursecontent';
+import { Elements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
+const stripePromise = loadStripe('your-publishable-key');
+
+
+
 
 export default function App() {
   return (
@@ -61,6 +70,7 @@ export default function App() {
         <Route path="/na" element={<LayoutTeacher/>} />
         <Route path="/register" element={<Register />} />
         <Route path="/role-selection" element={<RoleSelection />}/>
+        <Route path="/course-content" element={<CourseContent />}/>
 
 
 
