@@ -32,8 +32,8 @@ const CheckoutForm = ({ clientSecret }) => {
 
   return (
     <form onSubmit={handleSubmit}>
-      <CardElement />
-      <button type="submit" disabled={!stripe}>
+<CardElement options={{ style: { base: { fontSize: '18px', color: '#424770' } } }} />
+<button type="submit" disabled={!stripe}>
         Pay
       </button>
       {error && <div style={{ color: 'red' }}>{error}</div>}

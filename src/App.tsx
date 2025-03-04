@@ -1,5 +1,4 @@
 import React from 'react';
-
 import Landing from "./components/Landing/landing";
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Test from "./components/crudcourse/test1";
@@ -20,7 +19,7 @@ import Learning1 from './components/usercourses/learning1';
 import Quiz1 from './components/quiz/quiz1';
 import Gen1 from './components/quizaigen/gen1';
 import Session1 from './components/sessioncrud/session1';
-import CrudTeacher1 from './components/crudteacher/crud'
+import CrudTeacher1 from './components/crudteacher/crud';
 import SidebarContent from './components/sidebar';
 import LayoutTeacher from './components/layoutteacher';
 import Course1 from './components/ta';
@@ -34,54 +33,42 @@ import AuthRedirector from './components/auth/AuthRedirector ';
 import CourseContent from './components/coursecontent/coursecontent';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
-const stripePromise = loadStripe('your-publishable-key');
+import CheckoutForm from './components/Stripe/stripe';
+import PaymentPage from './components/Stripe/payme';
 
-
+// Initialize Stripe with your public key
+const stripePromise = loadStripe('pk_test_51QyuUQAlzb98dcXiqKOAprivh0Ms3PdVIlR74mAcwPfGxaHhPfUBek8zJ0o3SejlP0jniOCHePHsQP8YOrmzrO1s00LAPjBeRb');
 
 export default function App() {
   return (
-  
-
-    <>
-    <Router>
-    <Navbar/>
-
-      <Routes>
-      <Route path="/role-check" element={<AuthRedirector />} />
-
-        <Route path="/home" element={<Landing/>} />
-        <Route path="/Dashboard" element={<Test/>} />
-        <Route path="/course" element={<Course/>} />
-        <Route path="/live" element={<Bos/>} />
-        <Route path="/Login" element={<Login/>} />
-        <Route path="/enroll" element={<CourseEnroll/>} />
-        <Route path="/coursedata" element={<CourseDisplay/> } />
-        <Route path="/tut" element={<Tut/>} />
-        <Route path="/teacher" element={<TeacherBooking1/>} />
-        <Route path="/payment" element={<Payment1/>} />
-        <Route path="/s" element={<Setting1/>} />
-        <Route path="/chat" element={<Chat1/>} />
-        <Route path="/prog" element={<Learning1/>} />
-        <Route path="/q" element={<Quiz1/>} />
-        <Route path="/ai" element={<Gen1/>} />
-        <Route path="/session" element={<Session1/>} />
-        <Route path="/crud" element={<CrudTeacher1/>} />
-        <Route path="/na" element={<LayoutTeacher/>} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/role-selection" element={<RoleSelection />}/>
-        <Route path="/course-content" element={<CourseContent />}/>
-
-
-
-        
-      
-
-
-
-        
-        
-      </Routes>
-    </Router>
-    </>
-  );}
-
+    <Elements stripe={stripePromise}>
+      <Router>
+        <Routes>
+          <Route path="/role-check" element={<AuthRedirector />} />
+          <Route path="/home" element={<Landing />} />
+          <Route path="/Dashboard" element={<Test />} />
+          <Route path="/course" element={<Course />} />
+          <Route path="/live" element={<Bos />} />
+          <Route path="/Login" element={<Login />} />
+          <Route path="/enroll" element={<CourseEnroll />} />
+          <Route path="/coursedata" element={<CourseDisplay />} />
+          <Route path="/tut" element={<Tut />} />
+          <Route path="/teacher" element={<TeacherBooking1 />} />
+          <Route path="/payment" element={<Payment1 />} />
+          <Route path="/s" element={<Setting1 />} />
+          <Route path="/chat" element={<Chat1 />} />
+          <Route path="/prog" element={<Learning1 />} />
+          <Route path="/q" element={<Quiz1 />} />
+          <Route path="/ai" element={<Gen1 />} />
+          <Route path="/session" element={<Session1 />} />
+          <Route path="/crud" element={<CrudTeacher1 />} />
+          <Route path="/na" element={<LayoutTeacher />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/role-selection" element={<RoleSelection />} />
+          <Route path="/course-content" element={<CourseContent />} />
+          <Route path="/checkout" element={<PaymentPage />} />
+        </Routes>
+      </Router>
+    </Elements>
+  );
+}
