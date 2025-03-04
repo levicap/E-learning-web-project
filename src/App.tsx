@@ -1,5 +1,4 @@
-import React from 'react';
-
+import React, { useState, useEffect } from 'react';
 import Landing from "./components/Landing/landing";
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Test from "./components/crudcourse/test1";
@@ -25,16 +24,19 @@ import SidebarContent from './components/sidebar';
 import LayoutTeacher from './components/layoutteacher';
 import Course1 from './components/ta';
 import { Toaster } from '@/components/ui/sonner';
-import { store } from '@/lib/store/store';
 import Navbar from '@/components/Landing/Navbar';
 import Login from '@/components/auth/Login';
 import Register from '@/components/auth/Register';
 import RoleSelection from './components/auth/RoleSelection';
 import AuthRedirector from './components/auth/AuthRedirector ';
+
+import VideoApp from './components/videoChat/VideoApp';
+=======
 import CourseContent from './components/coursecontent/coursecontent';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 const stripePromise = loadStripe('your-publishable-key');
+
 
 
 
@@ -45,10 +47,9 @@ export default function App() {
     <>
     <Router>
     <Navbar/>
-
       <Routes>
       <Route path="/role-check" element={<AuthRedirector />} />
-
+      <Route path="/live" element={<VideoApp/>}/>
         <Route path="/home" element={<Landing/>} />
         <Route path="/Dashboard" element={<Test/>} />
         <Route path="/course" element={<Course/>} />
