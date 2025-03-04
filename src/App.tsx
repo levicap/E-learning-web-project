@@ -3,9 +3,7 @@ import Landing from "./components/Landing/landing";
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Test from "./components/crudcourse/test1";
 import Course from './components/course';
-import Live from './components/live';
 import AppLayout from './components/layoutuser';
-import Bos from './components/Live/l';
 import Sign from './components/auth/sign';
 import Enroll from './components/enroll';
 import CourseDisplay from './components/Courseenroll/coursedisplay';
@@ -29,6 +27,9 @@ import Login from '@/components/auth/Login';
 import Register from '@/components/auth/Register';
 import RoleSelection from './components/auth/RoleSelection';
 import AuthRedirector from './components/auth/AuthRedirector ';
+
+
+import VideoApp from './components/videoChat/VideoApp';
 import CourseContent from './components/coursecontent/coursecontent';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
@@ -42,12 +43,13 @@ export default function App() {
   return (
     <Elements stripe={stripePromise}>
       <Router>
+        <Navbar />
         <Routes>
           <Route path="/role-check" element={<AuthRedirector />} />
           <Route path="/home" element={<Landing />} />
           <Route path="/Dashboard" element={<Test />} />
           <Route path="/course" element={<Course />} />
-          <Route path="/live" element={<Bos />} />
+          <Route path="/live" element={<VideoApp />} />
           <Route path="/Login" element={<Login />} />
           <Route path="/enroll" element={<CourseEnroll />} />
           <Route path="/coursedata" element={<CourseDisplay />} />
