@@ -32,6 +32,10 @@ import Register from '@/components/auth/Register';
 import RoleSelection from './components/auth/RoleSelection';
 import AuthRedirector from './components/auth/AuthRedirector ';
 import CourseContent from './components/coursecontent/coursecontent';
+import { Elements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
+const stripePromise = loadStripe('your-publishable-key');
+
 
 
 export default function App() {

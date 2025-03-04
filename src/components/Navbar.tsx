@@ -58,32 +58,24 @@ import { useNavigate } from "react-router-dom";
 export default function Navbar() {
   const { isLoaded, userId, getToken } = useAuth();
 const  navigate = useNavigate();
-    const notifications = [
-        {
-          id: 1,
-          title: "New Course Published",
-          message: "Advanced Machine Learning is now live",
-          time: "2 minutes ago",
-          type: "success",
-          icon: CheckCircle2
-        },
-        {
-          id: 2,
-          title: "Upcoming Deadline",
-          message: "Assignment submission due in 2 hours",
-          time: "1 hour ago",
-          type: "warning",
-          icon: Clock
-        },
-        {
-          id: 3,
-          title: "System Update",
-          message: "Platform maintenance scheduled",
-          time: "3 hours ago",
-          type: "info",
-          icon: AlertCircle
-        }
-      ];
+   
+  const [notifications, setNotifications] = useState([]);
+
+  // Fetch notifications from the API
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/notifications'); // Update with your actual API endpoint
+        if (!response.ok) throw new Error('Failed to fetch notifications');
+        const data = await response.json();
+        setNotifications(data.notifications || []);
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
+      }
+    };
+    fetchNotifications();
+  }, []);
+
       const toggleTheme = () => {
         setIsDarkMode(!isDarkMode);
         document.documentElement.classList.toggle('dark');

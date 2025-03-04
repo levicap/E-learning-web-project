@@ -18,7 +18,7 @@ export default function AuthRedirector() {
 
       try {
         const token = await getToken();
-        const response = await fetch(`http://localhost:3001/api/users/${userId}`, {
+        const response = await fetch(`http://localhost:5000/api/users/${userId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
