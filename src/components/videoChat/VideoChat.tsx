@@ -33,7 +33,7 @@ interface VideoChatProps {
   userId: string;
 }
 
-const AGORA_APP_ID = '8a1ba2ae105e4120917c0adcd82c29ce';
+const AGORA_APP_ID = '6e95e9bc2f2644fc97950ea2d9f6aee3';
 
 const VideoChat: React.FC<VideoChatProps> = ({ channel, onLeave, username, userId }) => {
   const { user } = useUser();
@@ -572,7 +572,7 @@ const VideoChat: React.FC<VideoChatProps> = ({ channel, onLeave, username, userI
       <div className="flex-1 flex overflow-hidden">
         {/* Video Grid */}
         <div className="flex-1 overflow-auto p-4">
-          {error && (
+          {/* {error && (
             <div className="mb-4 bg-destructive/10 border border-destructive/20 text-destructive rounded-md p-3 flex items-center justify-between">
               <span>{error}</span>
               <Button 
@@ -583,7 +583,7 @@ const VideoChat: React.FC<VideoChatProps> = ({ channel, onLeave, username, userI
                 <X className="h-4 w-4" />
               </Button>
             </div>
-          )}
+          )} */}
 
           <div className={cn(
             "grid gap-4 h-full",
