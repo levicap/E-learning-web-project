@@ -3,8 +3,6 @@ import Chat from "./chat";
 
 export default function Chat1() {
   return (
-    <AppLayout>
       <Chat />
-    </AppLayout>
   );
 }   

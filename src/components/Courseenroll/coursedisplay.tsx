@@ -3,8 +3,6 @@ import CourseData from "./coursedata";
 
 export default function CourseDisplay() {
   return (
-    <AppLayout>
       <CourseData />
-    </AppLayout>
   );
 }
