@@ -35,6 +35,7 @@ import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import CheckoutForm from './components/Stripe/stripe';
 import PaymentPage from './components/Stripe/payme';
+import { N } from 'node_modules/framer-motion/dist/types.d-6pKw1mTI';
 
 // Initialize Stripe with your public key
 const stripePromise = loadStripe('pk_test_51QyuUQAlzb98dcXiqKOAprivh0Ms3PdVIlR74mAcwPfGxaHhPfUBek8zJ0o3SejlP0jniOCHePHsQP8YOrmzrO1s00LAPjBeRb');
@@ -43,7 +44,8 @@ export default function App() {
   return (
     <Elements stripe={stripePromise}>
       <Router>
-        <Navbar />
+      <Navbar />
+
         <Routes>
           <Route path="/role-check" element={<AuthRedirector />} />
           <Route path="/home" element={<Landing />} />

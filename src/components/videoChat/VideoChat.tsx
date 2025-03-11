@@ -33,7 +33,7 @@ interface VideoChatProps {
   userId: string;
 }
 
-const AGORA_APP_ID = '8a1ba2ae105e4120917c0adcd82c29ce';
+const AGORA_APP_ID = '6e95e9bc2f2644fc97950ea2d9f6aee3';
 
 const VideoChat: React.FC<VideoChatProps> = ({ channel, onLeave, username, userId }) => {
   const { user } = useUser();
