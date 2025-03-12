@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Upload } from 'lucide-react';
+import { useUser } from "@clerk/clerk-react";
+
 
 // Define a Zod schema for lessons
 const LessonSchema = z.object({
@@ -42,6 +44,8 @@ const CourseSchema = z.object({
 });
 
 const CreateCourseDialog = () => {
+  const { user } = useUser();
+
   const [newCourse, setNewCourse] = useState({
     title: '',
     description: '',
@@ -155,6 +159,10 @@ const CreateCourseDialog = () => {
 
     fetch('http://localhost:5000/api/courses', {
       method: 'POST',
+      
+        headers: {
+          "x-clerk-user-id": user.id,
+        },
       body: formData,
     })
       .then((response) => response.json())

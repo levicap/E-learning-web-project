@@ -1,4 +1,4 @@
-import { useState, useEffect, ChangeEvent } from 'react';
+import { useState, useEffect, ChangeEvent, useMemo } from 'react';
 import {
   Bell,
   Book,
@@ -46,6 +46,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import CreateCourseDialog from './create';
 import SidebarContent from './sidebar';
 import { z } from 'zod';
+// Import Clerk hook
+import { useUser } from '@clerk/clerk-react';
 
 //
 // TypeScript Interfaces
@@ -89,7 +91,6 @@ const EditLessonSchema = z.object({
   title: z.string().min(1, "Lesson title is required"),
   description: z.string().optional(),
   duration: z.number().nonnegative("Duration must be non-negative"),
-  // When editing a lesson, you can either update the video URL or upload a new video.
   videoFile: z.preprocess(
     (val) => (val instanceof File ? val : undefined),
     z.instanceof(File).optional()
@@ -118,6 +119,18 @@ const AddLessonSchema = z.object({
 // Main Component
 //
 function Test() {
+  // Retrieve Clerk user data
+  const { user } = useUser();
+  console.log('Clerk user:', user);
+
+  // Memoize headers so they update only when user changes
+  const authHeaders = useMemo(() => {
+    return {
+      'Content-Type': 'application/json',
+      'x-clerk-user-id': user?.id || '',
+    };
+  }, [user]);
+
   // --- Global States ---
   const [courses, setCourses] = useState<Course[]>([]);
   const [totalCourses, setTotalCourses] = useState<number>(0);
@@ -167,13 +180,19 @@ function Test() {
 
   // --- Data Fetching ---
   useEffect(() => {
-    fetchCourses();
-    fetchTotalStats();
-  }, []);
+    if (user) {
+      fetchCourses();
+      fetchTotalStats();
+    }
+  }, [user]);
 
   const fetchCourses = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/courses');
+      // Debug log headers
+      console.log('Fetching courses with headers:', authHeaders);
+      const response = await fetch('http://localhost:5000/api/courses', {
+        headers: authHeaders,
+      });
       const data = await response.json();
       setCourses(data);
     } catch (err) {
@@ -183,7 +202,9 @@ function Test() {
 
   const fetchTotalStats = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/courses/total');
+      const response = await fetch('http://localhost:5000/api/courses/total', {
+        headers: authHeaders,
+      });
       const data = await response.json();
       setTotalCourses(data.totalCourses);
       setTotalRevenue(data.totalRevenue);
@@ -203,6 +224,7 @@ function Test() {
     try {
       const response = await fetch(`http://localhost:5000/api/courses/${courseToDelete._id}`, {
         method: 'DELETE',
+        headers: authHeaders,
       });
       if (response.ok) {
         setCourses(courses.filter(c => c._id !== courseToDelete._id));
@@ -255,6 +277,10 @@ function Test() {
       }
       const res = await fetch(`http://localhost:5000/api/courses/${editingCourse._id}`, {
         method: 'PUT',
+        headers: {
+          // Do not set Content-Type when sending FormData; include custom header only
+          'x-clerk-user-id': user?.id || '',
+        },
         body: formData,
       });
       const updatedCourse = await res.json();
@@ -313,6 +339,9 @@ function Test() {
       }
       const res = await fetch(`http://localhost:5000/api/courses/${editingCourse._id}/lessons/${editingLesson._id}`, {
         method: 'PUT',
+        headers: {
+          'x-clerk-user-id': user?.id || '',
+        },
         body: formData,
       });
       const updatedLesson = await res.json();
@@ -379,6 +408,9 @@ function Test() {
       }
       const res = await fetch(`http://localhost:5000/api/courses/${currentCourseForLesson._id}/lessons`, {
         method: 'POST',
+        headers: {
+          'x-clerk-user-id': user?.id || '',
+        },
         body: formData,
       });
       const data = await res.json();
