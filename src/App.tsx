@@ -4,7 +4,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Test from "./components/crudcourse/test1";
 import Course from './components/course';
 import AppLayout from './components/layoutuser';
-import Sign from './components/auth/sign';
 import Enroll from './components/enroll';
 import CourseDisplay from './components/Courseenroll/coursedisplay';
 import CourseEnroll from './components/Courseenroll/courseenroll';
@@ -12,7 +11,6 @@ import Tut from './components/sessionenroll/tut';
 import TeacherBooking1 from './components/booking/teacherbooking1';
 import Payment1 from './components/payment/payment1';
 import Setting1 from './components/settings/setting1';
-import Chat1 from './components/chat/chat1';
 import Learning1 from './components/usercourses/learning1';
 import Quiz1 from './components/quiz/quiz1';
 import Gen1 from './components/quizaigen/gen1';
@@ -59,7 +57,6 @@ export default function App() {
           <Route path="/teacher" element={<TeacherBooking1 />} />
           <Route path="/payment" element={<Payment1 />} />
           <Route path="/s" element={<Setting1 />} />
-          <Route path="/chat" element={<Chat1 />} />
           <Route path="/prog" element={<Learning1 />} />
           <Route path="/q" element={<Quiz1 />} />
           <Route path="/ai" element={<Gen1 />} />

@@ -1,9 +1,4 @@
 
-
-
-
-
-
 import React, { useState, useEffect } from 'react';
 import VideoChat from './VideoChat';
 import { useUser } from '@clerk/clerk-react';

@@ -1,158 +1,3 @@
-// import React, { useState, useEffect } from 'react';
-// import { ScrollArea } from '@/components/ui/scroll-area';
-// import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-// import { Badge } from '@/components/ui/badge';
-// import { Mic, MicOff, Crown, MoreHorizontal } from 'lucide-react';
-// import io, { Socket } from 'socket.io-client';
-// import { useUser } from '@clerk/clerk-react';
-// import { cn } from '@/lib/utils';
-// import { 
-//   DropdownMenu, 
-//   DropdownMenuContent, 
-//   DropdownMenuItem, 
-//   DropdownMenuTrigger 
-// } from '@/components/ui/dropdown-menu';
-// import { Button } from '@/components/ui/button';
-
-// interface Participant {
-//   id: string;
-//   name: string;
-//   role: 'host' | 'participant';
-//   isMuted?: boolean;
-//   isSpeaking?: boolean;
-//   userId?: string;
-// }
-
-// interface ParticipantsListProps {
-//   channel: string;
-//   userId: string;
-// }
-
-// const ParticipantsList: React.FC<ParticipantsListProps> = ({ channel, userId }) => {
-//   const { user } = useUser();
-//   const [participants, setParticipants] = useState<Participant[]>([]);
-//   const [socket, setSocket] = useState<Socket | null>(null);
-//   const [isConnected, setIsConnected] = useState(false);
-
-//   useEffect(() => {
-//     const newSocket = io('http://localhost:5000');
-//     setSocket(newSocket);
-
-//     newSocket.on('connect', () => {
-//       setIsConnected(true);
-      
-//       // Add this to join the room
-//       newSocket.emit('join-room', { 
-//         room: channel, 
-//         username: user?.fullName || user?.username || 'Anonymous',
-//         userId: userId
-//       });
-//     });
-
-//     newSocket.on('connect_error', () => {
-//       setIsConnected(false);
-//     });
-
-//     newSocket.on('participants-update', (updatedParticipants: Array<{
-//       id: string;
-//       name: string;
-//       role: 'host' | 'participant';
-//       userId?: string;
-//     }>) => {
-//       setParticipants(updatedParticipants.map(p => ({
-//         id: p.id,
-//         name: p.name,
-//         role: p.role,
-//         userId: p.userId,
-//         isMuted: false,
-//         isSpeaking: false
-//       })));
-//     });
-
-//     return () => {
-//       newSocket.disconnect();
-//     };
-//   }, [channel, user, userId]);
-
-//   return (
-//     <div className="flex flex-col h-full">
-//       <div className="p-4 border-b">
-//         <div className="flex items-center justify-between">
-//           <h3 className="text-lg font-semibold">Participants ({participants.length})</h3>
-//           <Badge variant={isConnected ? "outline" : "destructive"} className="h-6">
-//             {isConnected ? "Connected" : "Disconnected"}
-//           </Badge>
-//         </div>
-//       </div>
-
-//       <ScrollArea className="flex-grow p-4">
-//         <div className="space-y-2">
-//           {participants.length === 0 ? (
-//             <div className="text-center text-muted-foreground my-4">
-//               No participants yet
-//             </div>
-//           ) : (
-//             participants.map((participant) => (
-//               <div 
-//                 key={participant.id}
-//                 className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors"
-//               >
-//                 <div className="flex items-center gap-3">
-//                   <Avatar>
-//                     <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${participant.name}`} />
-//                     <AvatarFallback>{participant.name[0]?.toUpperCase()}</AvatarFallback>
-//                   </Avatar>
-                  
-//                   <div className="flex flex-col">
-//                     <div className="flex items-center gap-2">
-//                       <span className="font-medium">{participant.name}</span>
-//                       {participant.role === 'host' && (
-//                         <Crown size={14} className="text-amber-500" />
-//                       )}
-//                       {participant.userId === userId && (
-//                         <Badge variant="secondary" className="text-xs h-5">You</Badge>
-//                       )}
-//                     </div>
-//                     <span className="text-xs text-muted-foreground">
-//                       {participant.role === 'host' ? 'Host' : 'Participant'}
-//                     </span>
-//                   </div>
-//                 </div>
-                
-//                 <div className="flex items-center gap-2">
-//                   {participant.isMuted ? (
-//                     <MicOff size={16} className="text-destructive" />
-//                   ) : (
-//                     <Mic size={16} className={participant.isSpeaking ? 'text-green-500' : 'text-muted-foreground'} />
-//                   )}
-                  
-//                   <DropdownMenu>
-//                     <DropdownMenuTrigger asChild>
-//                       <Button variant="ghost" size="icon" className="h-8 w-8">
-//                         <MoreHorizontal size={16} />
-//                       </Button>
-//                     </DropdownMenuTrigger>
-//                     <DropdownMenuContent align="end">
-//                       <DropdownMenuItem>View profile</DropdownMenuItem>
-//                       <DropdownMenuItem>Send private message</DropdownMenuItem>
-//                       {participant.role === 'host' && participant.userId !== userId && (
-//                         <DropdownMenuItem>Request to be host</DropdownMenuItem>
-//                       )}
-//                     </DropdownMenuContent>
-//                   </DropdownMenu>
-//                 </div>
-//               </div>
-//             ))
-//           )}
-//         </div>
-//       </ScrollArea>
-//     </div>
-//   );
-// };
-
-// export default ParticipantsList;
-
-
 
 import React, { useState, useEffect } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -161,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Mic, MicOff, Crown, MoreHorizontal, Hand, Video, VideoOff, Shield } from 'lucide-react';
 import io, { Socket } from 'socket.io-client';
 import { useUser } from '@clerk/clerk-react';
-import { cn } from '@/lib/utils';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -223,7 +67,6 @@ const ParticipantsList: React.FC<ParticipantsListProps> = ({
     newSocket.on('connect', () => {
       setIsConnected(true);
       
-      // Add this to join the room
       newSocket.emit('join-room', { 
         room: channel, 
         username: user?.fullName || user?.username || 'Anonymous',

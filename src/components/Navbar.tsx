@@ -1,50 +1,22 @@
 import { useState } from 'react';
 import { 
   Bell, 
-  Book, 
-  ChevronDown, 
-  Layout, 
-  LogOut, 
   Menu, 
-  Moon, 
-  Plus, 
+  Moon,  
   Search, 
   Sun, 
-  Users,
-  Presentation,
   GraduationCap,
-  BarChart3,
-  Settings,
-  MessageSquare,
-  Calendar,
-  HelpCircle,
-  FileVideo,
-  Upload,
-  Trash2,
-  CheckCircle2,
-  Clock,
-  AlertCircle,
   Sparkles,
-  Gauge,
-  Trophy,
-  Target,
-  Zap
+
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Textarea } from "@/components/ui/textarea";
+
 import { cn } from '@/lib/utils';
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import SidebarContent from '../sidebar';
-import { SignedIn, SignedOut, UserButton } from "@clerk/clerk-react"; // Update import based on your Clerk version
+import SidebarContent from './sidebar';
+import { SignedIn, SignedOut, UserButton } from "@clerk/clerk-react"; 
 import { useAuth } from '@clerk/clerk-react';
 import {
   NavigationMenu,

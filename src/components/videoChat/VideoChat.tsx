@@ -13,8 +13,6 @@ import axios from 'axios';
 import Chat from './Chat';
 import ParticipantsList from './ParticipantsList';
 import Whiteboard from './Whiteboard';
-import Notes from './Notes';
-import FileSharing from './FileSharing';
 import { useUser } from '@clerk/clerk-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
