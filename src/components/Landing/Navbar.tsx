@@ -55,6 +55,8 @@ import {
 } from "@/components/ui/navigation-menu";
 import { BookOpen, Users2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { Bot } from "lucide-react";
+
 import io from 'socket.io-client';
 
 export default function Navbar() {
@@ -117,7 +119,7 @@ export default function Navbar() {
                     <div className="mr-8 hidden md:flex">
                       <a href="/" className="flex items-center space-x-2">
                         <Sparkles className="h-6 w-6 text-primary" />
-                        <span className="font-bold text-xl">LearnHub</span>
+                        <span className="font-bold text-xl">EduNova</span>
                       </a>
                     </div>
                     <NavigationMenu className="hidden md:flex">
@@ -140,6 +142,13 @@ export default function Navbar() {
                             Community
                           </NavigationMenuLink>
                         </NavigationMenuItem>
+                        <NavigationMenuItem>
+                          <NavigationMenuLink className={navigationMenuTriggerStyle()} href="/chatbot">
+                          <Bot className="h-4 w-4 mr-2" />
+                          EduBot
+                          </NavigationMenuLink>
+                        </NavigationMenuItem>
+                        <NavigationMenuItem></NavigationMenuItem>
                       </NavigationMenuList>
                     </NavigationMenu>
                     <div className="relative w-96 hidden md:block">

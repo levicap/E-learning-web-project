@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   CheckCircle2,
   Loader2,
@@ -12,7 +12,7 @@ import {
   Target,
   Lightbulb,
   ScrollText,
-  Pencil
+  Pencil,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { useUser } from '@clerk/clerk-react';
 
 function Gen() {
   const [courses, setCourses] = useState([]);
@@ -33,22 +34,39 @@ function Gen() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
-  // Use "quiz" or "assignment" (which we now treat as "exercise" in the UI)
-  const [activeTab, setActiveTab] = useState('quiz'); 
+  // "quiz" or "assignment" (exercise) selection
+  const [activeTab, setActiveTab] = useState('quiz');
 
-  // Fetch courses from your backend when the component mounts
+  // Get the logged-in user from Clerk
+  const { user } = useUser();
+
+  // Build authentication headers using the Clerk user id
+  const authHeaders = useMemo(() => {
+    if (!user?.id) return {};
+    return {
+      'Content-Type': 'application/json',
+      'x-clerk-user-id': user.id,
+    };
+  }, [user]);
+
+  // Fetch courses from the backend when the user is loaded
   useEffect(() => {
     async function fetchCourses() {
       try {
-        const res = await fetch('http://localhost:5000/api/courses');
+        const res = await fetch('http://localhost:5000/api/courses', {
+          headers: authHeaders,
+        });
         const data = await res.json();
-        setCourses(data);
+        // Ensure that the data is an array
+        setCourses(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error('Error fetching courses:', error);
       }
     }
-    fetchCourses();
-  }, []);
+    if (user?.id) {
+      fetchCourses();
+    }
+  }, [user, authHeaders]);
 
   // Handler for generating AI content
   const handleGenerate = async () => {
@@ -60,12 +78,12 @@ function Gen() {
     try {
       const response = await fetch('http://localhost:5000/api/ai/generate-content', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify({
           subject: selectedCourse.title,
           type: activeTab, // "quiz" or "assignment"
-          prompt: prompt
-        })
+          prompt: prompt,
+        }),
       });
       const data = await response.json();
       if (response.ok) {
@@ -73,7 +91,6 @@ function Gen() {
           setQuestions(data.output);
           setAssignment(null);
         } else {
-          // For assignment, we treat it as an "exercise"
           setAssignment(data.output);
           setQuestions([]);
         }
@@ -97,7 +114,7 @@ function Gen() {
     });
   };
 
-  // Handler for saving the selected quiz questions to the DB
+  // Handler for saving the selected quiz questions to the database
   const handleSaveQuiz = async () => {
     if (!selectedCourse || !selectedLesson || questions.length === 0) return;
     const selectedQuestions = questions.filter((_, idx) =>
@@ -115,8 +132,8 @@ function Gen() {
         `http://localhost:5000/api/courses/${selectedCourse._id}/lessons/${selectedLesson._id}/quiz`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ quiz: { questions: selectedQuestions } })
+          headers: authHeaders,
+          body: JSON.stringify({ quiz: { questions: selectedQuestions } }),
         }
       );
       const data = await response.json();
@@ -131,27 +148,10 @@ function Gen() {
     setIsSaving(false);
   };
 
-  // Utility function to determine badge color based on difficulty/level
-  const getDifficultyColor = (level) => {
-    switch (level) {
-      case 'Beginner':
-      case 'Easy':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-      case 'Intermediate':
-      case 'Medium':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-      case 'Advanced':
-      case 'Hard':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 md:p-8">
       <div className="max-w-6xl mx-auto space-y-8">
-        {/* Header */}
+        {/* Header and Tabs */}
         <div className="text-center space-y-4">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white flex items-center justify-center gap-3">
             <GraduationCap className="w-12 h-12 text-primary" />
@@ -245,14 +245,14 @@ function Gen() {
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="font-semibold">{lesson.title}</h3>
-                        <Badge variant="secondary" className={getDifficultyColor(lesson.level)}>
+                        <Badge variant="secondary">
                           {lesson.level}
                         </Badge>
                       </div>
                       <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
                         {lesson.description}
                       </p>
-                      <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
                         <Clock className="w-4 h-4" />
                         {lesson.duration}
                       </div>
@@ -292,7 +292,6 @@ function Gen() {
                 />
               )}
             </div>
-
             <Button
               className="w-full"
               onClick={handleGenerate}
@@ -322,7 +321,6 @@ function Gen() {
                 Generated {activeTab === 'quiz' ? 'Quiz' : 'Exercise'}
               </h2>
             </div>
-
             {/* Quiz Display with Selectable Questions */}
             {questions.length > 0 && (
               <div className="space-y-8">
@@ -404,14 +402,13 @@ function Gen() {
                 </div>
               </div>
             )}
-
             {/* Exercise Display */}
             {assignment && (
               <div className="space-y-6">
                 <div>
                   <h3 className="text-2xl font-bold mb-2">{assignment.title}</h3>
                   <div className="flex items-center gap-4 mb-4">
-                    <Badge variant="secondary" className={getDifficultyColor(assignment.difficulty)}>
+                    <Badge variant="secondary">
                       {assignment.difficulty}
                     </Badge>
                     <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -425,7 +422,6 @@ function Gen() {
                   </div>
                   <p className="text-gray-600 dark:text-gray-300">{assignment.description}</p>
                 </div>
-
                 <div className="space-y-4">
                   <div>
                     <h4 className="text-lg font-semibold mb-2 flex items-center gap-2">
@@ -441,7 +437,6 @@ function Gen() {
                       ))}
                     </ul>
                   </div>
-
                   <div>
                     <h4 className="text-lg font-semibold mb-2 flex items-center gap-2">
                       <ClipboardList className="w-5 h-5" />

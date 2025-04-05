@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence, useAnimation } from 'framer-motion';
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import {
   Card,
   CardContent,
@@ -7,42 +7,46 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
-import { useToast } from '@/hooks/use-toast';
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
 import {
   CreditCard,
   GoalIcon as PaypalIcon,
   AppleIcon,
   CirclePlayIcon as GooglePayIcon,
   Lock,
-  Shield,
-  Clock,
-  Gift,
   CheckCircle2,
   ArrowRight,
   Sparkles,
   Users,
   BookOpen,
   Timer,
-  Star,
-  Zap,
-  Award,
-  Heart,
-  TrendingUp,
-  MessageCircle,
-} from 'lucide-react';
-import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+} from "lucide-react";
+import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { useLocation } from "react-router-dom";
+import { useUser } from "@clerk/clerk-react";
+import { useToast } from "@/hooks/use-toast";
 
 function Payment() {
+  const { state } = useLocation();
+  // Check if state contains a course or a session
+  const course = state?.course;
+  const session = state?.session;
+  // Determine the payment amount based on whether a course or session is being purchased
+  const amount = course
+    ? Math.round(course.price * 100)
+    : session
+    ? Math.round(session.price * 100)
+    : 49900; // default fallback amount
+
   const [paymentStep, setPaymentStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -53,6 +57,7 @@ function Payment() {
 
   const stripe = useStripe();
   const elements = useElements();
+  const { user } = useUser();
 
   useEffect(() => {
     controls.start({
@@ -79,11 +84,11 @@ function Payment() {
     });
 
     try {
-      // Create Payment Intent on your server with a fixed one-time payment amount
+      // Create Payment Intent on your server with the dynamic amount
       const response = await fetch("http://localhost:5000/api/stripe/create-payment-intent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: 49900 }),
+        body: JSON.stringify({ amount }),
       });
       const data = await response.json();
       console.log("Payment Intent response:", data);
@@ -93,11 +98,11 @@ function Payment() {
       const clientSecret = data.clientSecret;
       console.log("Client Secret received:", clientSecret);
 
-      // Retrieve the persistent CardElement (always mounted)
       const cardElement = elements.getElement(CardElement);
       if (!cardElement) {
         throw new Error("Card element not found");
       }
+
       // Confirm the card payment using the client secret
       const result = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
@@ -106,6 +111,8 @@ function Payment() {
         },
       });
       console.log("Stripe confirmCardPayment result:", result);
+
+      // Check if payment was successful
       if (result.error) {
         toast({
           title: "Payment Failed",
@@ -114,12 +121,56 @@ function Payment() {
         });
         setIsProcessing(false);
       } else if (result.paymentIntent?.status === "succeeded") {
+        console.log("Payment was successful:", result.paymentIntent);
+        
+        // Retrieve Clerk user id from the Clerk hook
+        if (!user || !user.id) {
+          toast({
+            title: "Authentication Error",
+            description: "User not authenticated. Please log in again.",
+            variant: "destructive",
+          });
+          setIsProcessing(false);
+          return;
+        }
+        console.log("Clerk User ID:", user.id);
+        
+        // Determine the enrollment endpoint and payload based on purchase type
+        const enrollmentEndpoint = course
+          ? "http://localhost:5000/api/students/courses"
+          : "http://localhost:5000/api/students/sessions";
+        const payload = course
+          ? { courseId: course._id }
+          : { sessionId: session._id };
+
+        // Enroll the student by calling your enrollment endpoint with the Clerk user id in header
+        try {
+          const enrollResponse = await fetch(enrollmentEndpoint, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-clerk-user-id": user.id,
+            },
+            body: JSON.stringify(payload),
+          });
+          const enrollData = await enrollResponse.json();
+          console.log("Enrollment response:", enrollData);
+          if (!enrollResponse.ok) {
+            throw new Error(enrollData.error || "Enrollment failed");
+          }
+        } catch (enrollError) {
+          console.error("Error during enrollment:", enrollError);
+          // Optionally, you may display a warning toast while proceeding.
+        }
+        
         setPaymentStep(3);
         setIsProcessing(false);
         setShowConfetti(true);
         toast({
           title: "Payment Successful! 🎉",
-          description: "Welcome to the course! Your journey begins now.",
+          description: course
+            ? "Welcome to the course! Your journey begins now."
+            : "You have been enrolled in the session.",
         });
       }
     } catch (error) {
@@ -133,30 +184,26 @@ function Payment() {
     }
   };
 
+  // Steps labels for the progress indicator
   const steps = {
     1: "Payment Details",
     2: "Review Your Order",
     3: "Success",
   };
 
-  const features = [
-    { icon: Star, title: "4.9/5 Rating", description: "From 1000+ reviews" },
-    { icon: Zap, title: "Instant Access", description: "Start learning today" },
-    { icon: Award, title: "Certificate", description: "Upon completion" },
-    { icon: Heart, title: "Mentorship", description: "1-on-1 guidance" },
-    { icon: TrendingUp, title: "Job Ready", description: "Industry aligned" },
-    { icon: MessageCircle, title: "Community", description: "Active support" },
-  ];
-
-  // Keep the CardElement mounted (but hidden) when not on step 1.
+  // Keep the CardElement mounted even when not visible
   const persistentCardStyle =
     paymentStep === 1
       ? {}
       : { opacity: 0, pointerEvents: "none", height: 0, overflow: "hidden" };
 
   return (
-    <div className="min-h-screen bg-[conic-gradient(at_top_right,_var(--tw-gradient-stops))] from-indigo-100 via-purple-50 to-white p-4 md:p-8">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-6xl mx-auto">
+    <div className="mt-20 min-h-screen bg-[conic-gradient(at_top_right,_var(--tw-gradient-stops))] from-indigo-100 via-purple-50 to-white p-4 md:p-8">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-6xl mx-auto"
+      >
         {/* Header */}
         <motion.div
           className="text-center mb-8"
@@ -165,7 +212,9 @@ function Payment() {
           transition={{ delay: 0.2 }}
         >
           <h1 className="text-4xl font-bold mb-2 gradient-text">Transform Your Career</h1>
-          <p className="text-muted-foreground">Join thousands of successful developers who started here</p>
+          <p className="text-muted-foreground">
+            Join thousands of successful developers who started here
+          </p>
         </motion.div>
 
         {/* Progress Steps */}
@@ -175,8 +224,8 @@ function Payment() {
               <div key={step} className="flex items-center">
                 <motion.div
                   className={`w-10 h-10 rounded-full flex items-center justify-center relative ${
-                    Number(step) <= paymentStep ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                  } ${Number(step) === paymentStep ? 'pulse-ring' : ''}`}
+                    Number(step) <= paymentStep ? "bg-primary text-primary-foreground" : "bg-muted"
+                  } ${Number(step) === paymentStep ? "pulse-ring" : ""}`}
                   animate={{
                     scale: Number(step) === paymentStep ? 1.1 : 1,
                     transition: { duration: 0.2 },
@@ -199,28 +248,6 @@ function Payment() {
           </div>
           <p className="text-center text-muted-foreground">{steps[paymentStep]}</p>
         </div>
-
-        {/* Features Grid */}
-        <motion.div
-          className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-        >
-          {features.map((feature, index) => (
-            <motion.div
-              key={index}
-              className="glass-effect p-4 rounded-lg hover-card-effect"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 * index }}
-            >
-              <feature.icon className="w-6 h-6 text-primary mb-2 animate-float" />
-              <h3 className="font-medium">{feature.title}</h3>
-              <p className="text-sm text-muted-foreground">{feature.description}</p>
-            </motion.div>
-          ))}
-        </motion.div>
 
         {/* Payment Section – always mounted so CardElement remains available */}
         <div style={persistentCardStyle}>
@@ -248,10 +275,9 @@ function Payment() {
                   </TabsTrigger>
                   <TabsTrigger value="google">
                     <GooglePayIcon className="w-4 h-4 mr-2" />
-                    Google
+                    Google Pay
                   </TabsTrigger>
                 </TabsList>
-                {/* Render the single CardElement only in the "card" tab */}
                 <TabsContent value="card">
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
@@ -286,7 +312,7 @@ function Payment() {
                 </TabsContent>
                 <TabsContent value="paypal">
                   <motion.div className="p-8 text-center" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
-                    <PaypalIcon className="w-16 h-16 mx-auto mb-4 text-blue-600 animate-float" />
+                    <PaypalIcon className="w-16 h-16 mx-auto mb-4 text-blue-600" />
                     <p className="text-muted-foreground">
                       You will be redirected to PayPal to complete your purchase
                     </p>
@@ -294,7 +320,7 @@ function Payment() {
                 </TabsContent>
                 <TabsContent value="apple">
                   <motion.div className="p-8 text-center" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
-                    <AppleIcon className="w-16 h-16 mx-auto mb-4 animate-float" />
+                    <AppleIcon className="w-16 h-16 mx-auto mb-4" />
                     <p className="text-muted-foreground">
                       Complete your purchase with Apple Pay
                     </p>
@@ -302,7 +328,7 @@ function Payment() {
                 </TabsContent>
                 <TabsContent value="google">
                   <motion.div className="p-8 text-center" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
-                    <GooglePayIcon className="w-16 h-16 mx-auto mb-4 text-primary animate-float" />
+                    <GooglePayIcon className="w-16 h-16 mx-auto mb-4 text-primary" />
                     <p className="text-muted-foreground">
                       Complete your purchase with Google Pay
                     </p>
@@ -312,7 +338,6 @@ function Payment() {
             </CardContent>
             <CardFooter>
               <motion.div className="w-full" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                {/* Moves to step 2 (review) while keeping CardElement mounted */}
                 <Button className="w-full" size="lg" onClick={() => setPaymentStep(2)}>
                   <Lock className="w-4 h-4 mr-2" />
                   Continue to Review
@@ -333,19 +358,18 @@ function Payment() {
               exit={{ opacity: 0, x: 20 }}
               className="grid md:grid-cols-2 gap-8"
             >
-              {/* Course Summary */}
+              {/* Course or Session Summary */}
               <Card className="h-full hover-card-effect">
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <Badge variant="secondary" className="mb-2 animate-pulse">
-                      FEATURED COURSE
-                    </Badge>
-                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }}>
-                      <Sparkles className="w-5 h-5 text-yellow-500" />
-                    </motion.div>
-                  </div>
-                  <CardTitle>Complete Web Development Bootcamp 2025</CardTitle>
-                  <CardDescription>Master modern web development from scratch</CardDescription>
+                  <Badge variant="secondary" className="mb-2 animate-pulse">
+                    FEATURED {course ? "COURSE" : "SESSION"}
+                  </Badge>
+                  <CardTitle>{course ? course.title : session.title}</CardTitle>
+                  <CardDescription>
+                    {course
+                      ? "Master modern web development from scratch"
+                      : "Join our interactive learning session"}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="aspect-video rounded-lg overflow-hidden mb-6 relative group">
@@ -357,32 +381,32 @@ function Payment() {
                     </motion.div>
                     <img
                       src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80"
-                      alt="Course Preview"
+                      alt="Preview"
                       className="w-full h-full object-cover transition-transform group-hover:scale-105"
                     />
                     <div className="absolute bottom-4 right-4">
                       <Badge variant="secondary" className="glass-effect">
-                        <Clock className="w-4 h-4 mr-1" />
+                        <Timer className="w-4 h-4 mr-1" />
                         50+ Hours
                       </Badge>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4 mb-6">
                     <motion.div className="bg-muted/50 p-4 rounded-lg hover-card-effect" whileHover={{ scale: 1.05 }}>
-                      <Users className="w-5 h-5 mb-2 text-primary animate-float" />
+                      <Users className="w-5 h-5 mb-2 text-primary" />
                       <p className="font-medium">5,000+</p>
                       <p className="text-sm text-muted-foreground">Students Enrolled</p>
                     </motion.div>
                     <motion.div className="bg-muted/50 p-4 rounded-lg hover-card-effect" whileHover={{ scale: 1.05 }}>
-                      <Timer className="w-5 h-5 mb-2 text-primary animate-float" />
+                      <Timer className="w-5 h-5 mb-2 text-primary" />
                       <p className="font-medium">50+ Hours</p>
-                      <p className="text-sm text-muted-foreground">Course Content</p>
+                      <p className="text-sm text-muted-foreground">Content</p>
                     </motion.div>
                   </div>
                   <ScrollArea className="h-[200px] rounded-md border p-4">
                     <div className="space-y-4">
                       <motion.div className="flex items-start gap-2" whileHover={{ x: 5 }}>
-                        <Shield className="w-4 h-4 mt-1 text-green-500" />
+                        <Timer className="w-4 h-4 mt-1 text-green-500" />
                         <div>
                           <p className="font-medium">30-Day Money-Back Guarantee</p>
                           <p className="text-sm text-muted-foreground">Risk-free learning experience</p>
@@ -390,7 +414,7 @@ function Payment() {
                       </motion.div>
                       <Separator />
                       <motion.div className="flex items-start gap-2" whileHover={{ x: 5 }}>
-                        <Clock className="w-4 h-4 mt-1 text-blue-500" />
+                        <Timer className="w-4 h-4 mt-1 text-blue-500" />
                         <div>
                           <p className="font-medium">Lifetime Access</p>
                           <p className="text-sm text-muted-foreground">Including all future updates</p>
@@ -398,7 +422,7 @@ function Payment() {
                       </motion.div>
                       <Separator />
                       <motion.div className="flex items-start gap-2" whileHover={{ x: 5 }}>
-                        <Gift className="w-4 h-4 mt-1 text-purple-500" />
+                        <BookOpen className="w-4 h-4 mt-1 text-purple-500" />
                         <div>
                           <p className="font-medium">Exclusive Bonuses</p>
                           <p className="text-sm text-muted-foreground">
@@ -416,7 +440,7 @@ function Payment() {
                     <p className="text-sm text-muted-foreground">Total Price</p>
                     <div className="flex items-center gap-2">
                       <motion.p className="text-2xl font-bold" initial={{ scale: 1 }} whileHover={{ scale: 1.1 }}>
-                        $499.00
+                        ${course ? course.price.toFixed(2) : session.price.toFixed(2)}
                       </motion.p>
                       <Badge variant="secondary" className="uppercase animate-pulse">
                         Save 50%
@@ -452,14 +476,14 @@ function Payment() {
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.2 }}
                   >
-                    <h3 className="font-medium mb-2">Complete Web Development Bootcamp 2025</h3>
+                    <h3 className="font-medium mb-2">{course ? course.title : session.title}</h3>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Professional Plan - One-time Payment
+                      {course ? "Professional Plan - One-time Payment" : "Session Enrollment - One-time Payment"}
                     </p>
                     <div className="flex justify-between items-center">
                       <span className="text-sm">Total Amount</span>
                       <motion.span className="font-medium" initial={{ scale: 1 }} whileHover={{ scale: 1.1 }}>
-                        $499.00
+                        ${course ? course.price.toFixed(2) : session.price.toFixed(2)}
                       </motion.span>
                     </div>
                   </motion.div>
@@ -483,7 +507,7 @@ function Payment() {
                   </Button>
                   <motion.div className="w-full" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                     <Button className="w-full" onClick={handlePayment} disabled={isProcessing}>
-                      {isProcessing ? 'Processing...' : 'Complete Payment'}
+                      {isProcessing ? "Processing..." : "Complete Payment"}
                     </Button>
                   </motion.div>
                 </CardFooter>
@@ -514,26 +538,33 @@ function Payment() {
                     <CheckCircle2 className="w-8 h-8 text-green-600" />
                   </motion.div>
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-                    <CardTitle className="text-2xl gradient-text">Payment Successful!</CardTitle>
-                    <CardDescription>Your course access has been activated</CardDescription>
+                    <CardTitle className="text-2xl gradient-text">
+                      Payment Successful!
+                    </CardTitle>
+                    <CardDescription>
+                      {course ? "Your course access has been activated" : "You are now enrolled in the session"}
+                    </CardDescription>
                   </motion.div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <motion.p className="text-muted-foreground" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
-                    You will receive a confirmation email shortly with your course access details.
+                    You will receive a confirmation email shortly with your access details.
                   </motion.p>
                   <motion.div className="grid grid-cols-2 gap-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
                     <motion.div className="bg-muted/50 p-4 rounded-lg hover-card-effect" whileHover={{ scale: 1.05 }}>
-                      <BookOpen className="w-5 h-5 mb-2 text-primary animate-float" />
+                      <BookOpen className="w-5 h-5 mb-2 text-primary" />
                       <p className="font-medium">Start Learning</p>
-                      <p className="text-sm text-muted-foreground">Access your course now</p>
+                      <p className="text-sm text-muted-foreground">
+                        {course ? "Access your course now" : "View session details"}
+                      </p>
                     </motion.div>
                     <motion.div className="bg-muted/50 p-4 rounded-lg hover-card-effect" whileHover={{ scale: 1.05 }}>
-                      <Users className="w-5 h-5 mb-2 text-primary animate-float" />
+                      <Users className="w-5 h-5 mb-2 text-primary" />
                       <p className="font-medium">Join Community</p>
                       <p className="text-sm text-muted-foreground">Connect with peers</p>
                     </motion.div>
                   </motion.div>
+                  {/* Confetti animation */}
                   {showConfetti && (
                     <motion.div className="absolute inset-0 pointer-events-none" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
                       {[...Array(50)].map((_, i) => (
@@ -556,7 +587,7 @@ function Payment() {
                 <CardFooter>
                   <motion.div className="w-full" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                     <Button className="w-full" size="lg">
-                      Go to Course Dashboard
+                      Go to Dashboard
                     </Button>
                   </motion.div>
                 </CardFooter>

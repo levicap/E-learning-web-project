@@ -46,8 +46,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useUser } from '@clerk/clerk-react';
+import { useNavigate } from 'react-router-dom';
+
 
 function CourseData() {
+  const navigate = useNavigate();
+  const handleEnroll = (course: any) => {
+    navigate('/courses/enroll', { state: { course } });
+  };
   // Filter state variables
   const [searchQuery, setSearchQuery] = useState("");
   const [category, setCategory] = useState("all");
@@ -333,7 +339,7 @@ function CourseData() {
                       <DollarSign className="h-5 w-5 text-green-600" />
                       <span className="text-2xl font-bold">{course.price}</span>
                     </div>
-                    <Button className="bg-gradient-to-r from-primary to-purple-600 hover:scale-105 transition-transform">
+                    <Button onClick={() => handleEnroll(course)} className="bg-gradient-to-r from-primary to-purple-600 hover:scale-105 transition-transform">
                       Enroll Now
                     </Button>
                   </CardFooter>
