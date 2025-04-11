@@ -24,7 +24,7 @@ import {
   CheckCircle2,
   Clock,
   AlertCircle,
-  Sparkles,
+  Bot,
   Gauge,
   Trophy,
   Target,
@@ -55,8 +55,7 @@ import {
 } from "@/components/ui/navigation-menu";
 import { BookOpen, Users2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Bot } from "lucide-react";
-
+import Logo from './logo.jpg'
 import io from 'socket.io-client';
 
 export default function Navbar() {
@@ -80,7 +79,6 @@ export default function Navbar() {
     fetchNotifications();
   }, []);
 
- 
   useEffect(() => {
     const socket = io('http://localhost:5000');
     socket.on('newNotification', (notification) => {
@@ -89,7 +87,6 @@ export default function Navbar() {
     });
     return () => socket.disconnect();
   }, []);
-  
 
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
@@ -118,7 +115,7 @@ export default function Navbar() {
                   <div className="container flex h-16 items-center">
                     <div className="mr-8 hidden md:flex">
                       <a href="/" className="flex items-center space-x-2">
-                        <Sparkles className="h-6 w-6 text-primary" />
+                        <Bot className="h-6 w-6 text-primary" />
                         <span className="font-bold text-xl">EduNova</span>
                       </a>
                     </div>
@@ -131,21 +128,27 @@ export default function Navbar() {
                           </NavigationMenuLink>
                         </NavigationMenuItem>
                         <NavigationMenuItem>
+                          <NavigationMenuLink className={navigationMenuTriggerStyle()} href="/sessions">
+                            <FileVideo className="h-4 w-4 mr-2" />
+                            Sessions
+                          </NavigationMenuLink>
+                        </NavigationMenuItem>
+                        <NavigationMenuItem>
                           <NavigationMenuLink className={navigationMenuTriggerStyle()} href="/paths">
                             <GraduationCap className="h-4 w-4 mr-2" />
                             Learning Paths
                           </NavigationMenuLink>
                         </NavigationMenuItem>
                         <NavigationMenuItem>
-                          <NavigationMenuLink className={navigationMenuTriggerStyle()} href="/community">
-                            <Users2 className="h-4 w-4 mr-2" />
-                            Community
+                          <NavigationMenuLink className={navigationMenuTriggerStyle()} href="/interview">
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            AIinterviewBot
                           </NavigationMenuLink>
                         </NavigationMenuItem>
                         <NavigationMenuItem>
-                          <NavigationMenuLink className={navigationMenuTriggerStyle()} href="/chatbot">
-                          <Bot className="h-4 w-4 mr-2" />
-                          EduBot
+                          <NavigationMenuLink className={navigationMenuTriggerStyle()} href="/study">
+                            <Trophy className="h-4 w-4 mr-2" />
+                            AIexamBot
                           </NavigationMenuLink>
                         </NavigationMenuItem>
                         <NavigationMenuItem></NavigationMenuItem>
@@ -186,7 +189,6 @@ export default function Navbar() {
                                 'bg-blue-100 text-blue-600': notification.type === 'info'
                               }
                             )}>
-                              {/* Map the icon string to a component if necessary */}
                               {notification.type === 'success' && <CheckCircle2 className="h-4 w-4" />}
                               {notification.type === 'warning' && <AlertCircle className="h-4 w-4" />}
                               {notification.type === 'info' && <Clock className="h-4 w-4" />}
@@ -214,7 +216,7 @@ export default function Navbar() {
                 <div className="container flex h-16 items-center">
                   <div className="mr-8 hidden md:flex">
                     <a href="/" className="flex items-center space-x-2">
-                      <Sparkles className="h-6 w-6 text-primary" />
+                      <Bot className="h-6 w-6 text-primary" />
                       <span className="font-bold text-xl">LearnHub</span>
                     </a>
                   </div>

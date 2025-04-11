@@ -145,7 +145,7 @@ function Allsessions() {
   }, [sessions, searchQuery, selectedType, priceRange, selectedSubject, selectedLevel, selectedDuration]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-secondary/10">
+    <div className="mt-20 min-h-screen bg-gradient-to-br from-background via-background/95 to-secondary/10">
       <div className="container mx-auto py-8 px-4">
         <div className="flex flex-col gap-8">
           {/* Header */}

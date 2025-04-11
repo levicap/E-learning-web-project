@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useUser } from '@clerk/clerk-react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -31,7 +31,7 @@ import {
   XCircle,
 } from 'lucide-react';
 
-// Helper function to remove extra quotes from a string if present
+// Helper function to remove extra quotes from a string if present.
 const cleanString = (s: string) => {
   if (!s) return s;
   return s.replace(/^"|"$/g, '');
@@ -39,12 +39,16 @@ const cleanString = (s: string) => {
 
 function CourseContent() {
   const location = useLocation();
-  // Expecting courseId passed as state from the previous page
+  // Debug: Check what state is coming from the previous page
+  console.log('Location state:', location.state);
+
+  // Expecting courseId passed as state from the previous page.
   const { courseId } = location.state as { courseId: string };
 
+  const navigate = useNavigate();
   const { user } = useUser();
 
-  // Build the headers using useMemo
+  // Build the headers using useMemo.
   const authHeaders = useMemo(() => {
     if (!user?.id) return {};
     return {
@@ -60,7 +64,7 @@ function CourseContent() {
   const [course, setCourse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch course data
+  // Fetch course data.
   useEffect(() => {
     const fetchCourse = async () => {
       try {
@@ -88,7 +92,7 @@ function CourseContent() {
     }
   }, [courseId, authHeaders, user]);
 
-  // Fetch persisted progress data for the course
+  // Fetch persisted progress data for the course.
   useEffect(() => {
     const fetchProgress = async () => {
       try {
@@ -99,7 +103,7 @@ function CourseContent() {
         if (res.ok) {
           const progressData = await res.json();
           console.log('Progress data received:', progressData);
-          // Merge the persisted progress into your course state
+          // Merge the persisted progress into your course state.
           setCourse((prev: any) => ({ ...prev, progress: progressData.progress }));
         } else {
           console.warn('No progress data found for this course');
@@ -114,19 +118,19 @@ function CourseContent() {
     }
   }, [courseId, authHeaders, user]);
 
-  // Set the active lesson based on course progress once course data is loaded
+  // Set the active lesson based on course progress once course data is loaded.
   useEffect(() => {
     if (course && course.lessons && course.lessons.length > 0 && typeof course.progress === 'number') {
       const totalLessons = course.lessons.length;
-      // Compute lesson index based on progress percentage
+      // Compute lesson index based on progress percentage.
       let computedLesson = Math.ceil((course.progress / 100) * totalLessons);
-      // Clamp the index if it exceeds available lessons
+      // Clamp the index if it exceeds available lessons.
       if (computedLesson >= totalLessons) computedLesson = totalLessons - 1;
       setActiveLesson(computedLesson);
     }
   }, [course]);
 
-  // Call progress API when a lesson is completed
+  // Call progress API when a lesson is completed.
   const handleLessonCompletion = async () => {
     try {
       const lessonId = course.lessons[activeLesson]._id;
@@ -146,7 +150,7 @@ function CourseContent() {
       }
       const data = await response.json();
       console.log('Updated progress data:', data);
-      // Update course progress with the new progress value returned from the API
+      // Update course progress with the new progress value returned from the API.
       setCourse((prev: any) => ({ ...prev, progress: data.progress }));
     } catch (error) {
       console.error('Error updating progress:', error);
@@ -157,10 +161,11 @@ function CourseContent() {
     setShowQuizResult(true);
   };
 
-  // Update selected answer for a given question
+  // Update selected answer for a given question.
   const handleAnswerSelect = (questionIndex: number, optionIndex: number) => {
     setSelectedAnswers((prev) => ({ ...prev, [questionIndex]: optionIndex }));
   };
+  
 
   if (loading || !course) {
     return (
@@ -189,6 +194,17 @@ function CourseContent() {
   const totalAssignments = course.lessons.reduce((acc: number, lesson: any) =>
     acc + (lesson.assignment ? 1 : 0), 0
   );
+
+  // Add a log before navigating to Exam to see what's being sent.
+ // Add a log before navigating to Exam to see what's being sent.
+const handleTakeExam = () => {
+  console.log('Navigating to Exam with state:', {
+    courseId,
+    courseName: course.title,
+  });
+  navigate('/exam', { state: { courseId, courseName: course.title } });
+};
+
 
   return (
     <div className="min-h-screen bg-background mt-20">
@@ -275,6 +291,15 @@ function CourseContent() {
                 <p className="text-sm text-muted-foreground">
                   {course.progress}% complete
                 </p>
+                {/* Conditionally render the "Take Exam" button when progress is 100% */}
+                {course.progress === 100 && (
+                  <Button
+                    className="mt-4 w-full"
+                    onClick={handleTakeExam}
+                  >
+                    Take Exam
+                  </Button>
+                )}
               </div>
             </Card>
 
@@ -454,6 +479,15 @@ function CourseContent() {
                 <span>{course.progress}% Complete</span>
                 <span>{course.lessons.length} Lessons</span>
               </div>
+              {/* Render the "Take Exam" button when progress is 100% */}
+              {course.progress === 100 && (
+                <Button
+                  className="mt-4 w-full"
+                  onClick={handleTakeExam}
+                >
+                  Take Exam
+                </Button>
+              )}
             </Card>
 
             <Card>

@@ -18,7 +18,7 @@ export default function SidebarContent() {
   const navigate = useNavigate();
 
   return (
-    <div className="space-y-4 py-4 w-64">
+    <div className="space-y-4 py-4 w-64 mt-20">
       <div className="px-3 py-2">
         <div className="space-y-1">
           <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight">

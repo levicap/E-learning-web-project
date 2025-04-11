@@ -149,7 +149,7 @@ function Gen() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 md:p-8">
+    <div className="mt-20 min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 md:p-8">
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Header and Tabs */}
         <div className="text-center space-y-4">
@@ -199,7 +199,8 @@ function Gen() {
               >
                 <div className="aspect-video relative">
                   <img
-                    src={course.image}
+                    src={`http://localhost:5000${course.image}`}
+
                     alt={course.title}
                     className="w-full h-full object-cover"
                   />
