@@ -22,13 +22,16 @@ export default function RoleSelection() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           role,
-          id: user?.id,
-          name: user?.fullName || user?.username
+          clerkId: user?.id,
+          name: user?.fullName || user?.username,
+          email: user?.primaryEmailAddress?.emailAddress // Add this line
         })
       });
-
+  
       if (response.ok) {
         navigate(`/${role}-dashboard`);
+      } else {
+        console.error('Failed to save role:', await response.text());
       }
     } catch (error) {
       console.error('Error saving role:', error);

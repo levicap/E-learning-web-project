@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Pencil, Trash2, PlusCircle, BookOpen, GraduationCap, ClipboardList, Code } from 'lucide-react';
+import { useUser } from '@clerk/clerk-react';
 
 // -------------------- Utility Types --------------------
 export type Course = {
@@ -51,9 +52,11 @@ export type CodeExample = {
 const CourseSelection = ({
   selectedCourse,
   onSelectCourse,
+  authHeaders,
 }: {
   selectedCourse: Course | null;
   onSelectCourse: (course: Course) => void;
+  authHeaders: Record<string, string>;
 }) => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(false);
@@ -61,17 +64,17 @@ const CourseSelection = ({
 
   useEffect(() => {
     setLoading(true);
-    fetch('http://localhost:5000/api/courses')
+    fetch('http://localhost:5000/api/courses', { headers: authHeaders })
       .then((res) => res.json())
       .then((data) => {
-        setCourses(data);
+        setCourses(Array.isArray(data) ? data : []);
         setLoading(false);
       })
       .catch((err) => {
         setError('Error fetching courses');
         setLoading(false);
       });
-  }, []);
+  }, [authHeaders]);
 
   if (loading) return <p>Loading courses…</p>;
   if (error) return <p>{error}</p>;
@@ -253,12 +256,13 @@ const QuizManager = ({
   courseId,
   lesson,
   refreshLesson,
+  authHeaders,
 }: {
   courseId: string;
   lesson: Lesson;
   refreshLesson: () => void;
+  authHeaders: Record<string, string>;
 }) => {
-  // Local state reflects the quiz questions for the selected lesson.
   const [questions, setQuestions] = useState<QuizQuestion[]>(lesson.quiz?.questions || []);
   const [newQuestion, setNewQuestion] = useState<QuizQuestion>({
     question: '',
@@ -271,12 +275,10 @@ const QuizManager = ({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
 
-  // Update local questions when the lesson's quiz changes.
   useEffect(() => {
     setQuestions(lesson.quiz?.questions || []);
   }, [lesson.quiz]);
 
-  // Handlers for new question inputs
   const handleNewOptionChange = (index: number, value: string) => {
     const newOptions = [...newQuestion.options];
     newOptions[index] = value;
@@ -292,13 +294,11 @@ const QuizManager = ({
     setNewQuestion({ ...newQuestion, options: newOptions });
   };
 
-  // This sends the entire quiz array to the backend.
   const saveQuiz = () => {
     const quizData = { questions };
-    console.log("Sending quiz data:", JSON.stringify({ quiz: quizData }));
     fetch(`http://localhost:5000/api/courses/${courseId}/lessons/${lesson._id}/quiz`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...authHeaders },
       body: JSON.stringify({ quiz: quizData }),
     })
       .then((res) => res.json())
@@ -311,7 +311,7 @@ const QuizManager = ({
         setError(err.message);
       });
   };
-  
+
   const addQuestionHandler = () => {
     if (!newQuestion.question.trim() || newQuestion.options.length < 2) {
       setError('Please enter a question and at least two options.');
@@ -344,10 +344,9 @@ const QuizManager = ({
 
   const handleDeleteConfirm = () => {
     if (deleteIndex === null) return;
-    // Call the DELETE endpoint for the specific quiz question index.
     fetch(
       `http://localhost:5000/api/courses/${courseId}/lessons/${lesson._id}/quiz/question/${deleteIndex}`,
-      { method: 'DELETE' }
+      { method: 'DELETE', headers: { ...authHeaders } }
     )
       .then((res) => res.json())
       .then(() => {
@@ -468,10 +467,12 @@ const AssignmentManager = ({
   courseId,
   lesson,
   refreshLesson,
+  authHeaders,
 }: {
   courseId: string;
   lesson: Lesson;
   refreshLesson: () => void;
+  authHeaders: Record<string, string>;
 }) => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -479,6 +480,7 @@ const AssignmentManager = ({
   const handleAssignmentSubmit = (fd: FormData) => {
     fetch(`http://localhost:5000/api/courses/${courseId}/lessons/${lesson._id}/assignment`, {
       method: 'POST',
+      headers: { ...authHeaders },
       body: fd,
     })
       .then((res) => res.json())
@@ -496,6 +498,7 @@ const AssignmentManager = ({
   const deleteAssignment = () => {
     fetch(`http://localhost:5000/api/courses/${courseId}/lessons/${lesson._id}/assignment`, {
       method: 'DELETE',
+      headers: { ...authHeaders },
     })
       .then((res) => res.json())
       .then(() => {
@@ -600,9 +603,11 @@ const AssignmentForm = ({
 const CodeExampleManager = ({
   course,
   refreshCourse,
+  authHeaders,
 }: {
   course: Course;
   refreshCourse: () => void;
+  authHeaders: Record<string, string>;
 }) => {
   const [codeExamples, setCodeExamples] = useState<CodeExample[]>(course.codeExamples || []);
   const [newExample, setNewExample] = useState<CodeExample>({
@@ -627,7 +632,7 @@ const CodeExampleManager = ({
     }
     fetch(`http://localhost:5000/api/courses/${course._id}/codeExamples`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...authHeaders },
       body: JSON.stringify(newExample),
     })
       .then((res) => res.json())
@@ -646,6 +651,7 @@ const CodeExampleManager = ({
   const deleteCodeExample = (codeExampleId: string) => {
     fetch(`http://localhost:5000/api/courses/${course._id}/codeExamples/${codeExampleId}`, {
       method: 'DELETE',
+      headers: { ...authHeaders },
     })
       .then((res) => res.json())
       .then((data) => {
@@ -663,7 +669,7 @@ const CodeExampleManager = ({
   const handleEditSave = (edited: CodeExample) => {
     fetch(`http://localhost:5000/api/courses/${course._id}/codeExamples/${edited._id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...authHeaders },
       body: JSON.stringify(edited),
     })
       .then((res) => res.json())
@@ -804,13 +810,22 @@ const CodeExampleManager = ({
 
 // -------------------- Main Dashboard --------------------
 function Dashboard() {
+  const { user } = useUser();
+  const authHeaders = useMemo(() => {
+    if (!user?.id) return {};
+    return {
+      'Content-Type': 'application/json',
+      'x-clerk-user-id': user.id,
+    };
+  }, [user]);
+
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
 
   // Refresh full course details after any update.
   const refreshCourse = () => {
     if (selectedCourse) {
-      fetch(`http://localhost:5000/api/courses/${selectedCourse._id}`)
+      fetch(`http://localhost:5000/api/courses/${selectedCourse._id}`, { headers: authHeaders })
         .then((res) => res.json())
         .then((data: Course) => {
           setSelectedCourse(data);
@@ -840,6 +855,7 @@ function Dashboard() {
                   setSelectedCourse(course);
                   setSelectedLesson(null);
                 }}
+                authHeaders={authHeaders}
               />
             </Card>
           </div>
@@ -882,6 +898,7 @@ function Dashboard() {
                       courseId={selectedCourse._id}
                       lesson={selectedLesson}
                       refreshLesson={refreshCourse}
+                      authHeaders={authHeaders}
                     />
                   </TabsContent>
                   <TabsContent value="assignments">
@@ -889,10 +906,15 @@ function Dashboard() {
                       courseId={selectedCourse._id}
                       lesson={selectedLesson}
                       refreshLesson={refreshCourse}
+                      authHeaders={authHeaders}
                     />
                   </TabsContent>
                   <TabsContent value="codeexamples">
-                    <CodeExampleManager course={selectedCourse} refreshCourse={refreshCourse} />
+                    <CodeExampleManager
+                      course={selectedCourse}
+                      refreshCourse={refreshCourse}
+                      authHeaders={authHeaders}
+                    />
                   </TabsContent>
                 </Tabs>
               </Card>
