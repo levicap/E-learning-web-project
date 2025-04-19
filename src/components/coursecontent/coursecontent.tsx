@@ -392,42 +392,80 @@ const handleTakeExam = () => {
                   </div>
                 </Card>
               </TabsContent>
-
               <TabsContent value="quiz" className="mt-6">
-                <Card className="p-6">
-                  {currentLesson.quiz && currentLesson.quiz.questions.length > 0 ? (
-                    <div>
-                      <h3 className="text-xl font-bold mb-4">Quiz</h3>
-                      {currentLesson.quiz.questions.map((question: any, qIndex: number) => (
-                        <div key={qIndex} className="mb-6">
-                          <p className="font-medium mb-2">{question.question}</p>
-                          <RadioGroup
-                            value={selectedAnswers[qIndex]?.toString() || ''}
-                            onValueChange={(val) => handleAnswerSelect(qIndex, parseInt(val))}
-                          >
-                            {question.options.map((option: string, oIndex: number) => (
-                              <div key={oIndex} className="flex items-center mb-1">
-                                <RadioGroupItem value={oIndex.toString()} id={`option-${qIndex}-${oIndex}`} />
-                                <Label htmlFor={`option-${qIndex}-${oIndex}`} className="ml-2">
-                                  {option}
-                                </Label>
-                              </div>
-                            ))}
-                          </RadioGroup>
-                        </div>
-                      ))}
-                      <Button onClick={handleQuizSubmit}>Submit Quiz</Button>
-                      {showQuizResult && (
-                        <Alert className="mt-4">
-                          <AlertDescription>Quiz submitted successfully!</AlertDescription>
-                        </Alert>
-                      )}
+  <Card className="p-6">
+    {currentLesson.quiz?.questions?.length ? (
+      <div>
+        <h3 className="text-xl font-bold mb-4">Quiz</h3>
+
+        {currentLesson.quiz.questions.map((q, qIndex) => {
+          const userAnswer = selectedAnswers[qIndex];
+          const isCorrect = userAnswer === q.correctAnswer;
+
+          return (
+            <div key={qIndex} className="mb-8">
+              <p className="font-medium mb-4">{q.question}</p>
+
+              {/* Wrap all options in one RadioGroup */}
+              <RadioGroup
+                value={userAnswer?.toString() || ''}
+                onValueChange={(val) => handleAnswerSelect(qIndex, parseInt(val))}
+                disabled={showQuizResult}
+                className="space-y-2"
+              >
+                {q.options.map((option, oIndex) => {
+                  let bgClass = "";
+                  if (showQuizResult) {
+                    if (oIndex === q.correctAnswer) {
+                      bgClass = "bg-green-100";
+                    } else if (oIndex === userAnswer && !isCorrect) {
+                      bgClass = "bg-red-100";
+                    }
+                  }
+
+                  return (
+                    <div
+                      key={oIndex}
+                      className={`flex items-center p-2 rounded ${bgClass}`}
+                    >
+                      <RadioGroupItem
+                        value={oIndex.toString()}
+                        id={`option-${qIndex}-${oIndex}`}
+                      />
+                      <Label htmlFor={`option-${qIndex}-${oIndex}`} className="ml-2">
+                        {option}
+                      </Label>
                     </div>
-                  ) : (
-                    <p>No quiz available for this lesson.</p>
-                  )}
-                </Card>
-              </TabsContent>
+                  );
+                })}
+              </RadioGroup>
+
+              {showQuizResult && (
+                <p
+                  className={`mt-2 font-semibold ${
+                    isCorrect ? "text-green-700" : "text-red-700"
+                  }`}
+                >
+                  {isCorrect
+                    ? "✅ Correct answer!"
+                    : `❌ Wrong answer. The correct answer is “${q.options[q.correctAnswer]}”.`}
+                </p>
+              )}
+            </div>
+          );
+        })}
+
+        <Button onClick={handleQuizSubmit} disabled={showQuizResult} className="mt-4">
+          Submit Quiz
+        </Button>
+      </div>
+    ) : (
+      <p>No quiz available for this lesson.</p>
+    )}
+  </Card>
+</TabsContent>
+
+
 
               <TabsContent value="assignment" className="mt-6">
                 <Card className="p-6">

@@ -116,7 +116,7 @@ export default function Navbar() {
                     <div className="mr-8 hidden md:flex">
                       <a href="/" className="flex items-center space-x-2">
                         <Bot className="h-6 w-6 text-primary" />
-                        <span className="font-bold text-xl">EduNova</span>
+                        <span className="font-bold text-xl">Learnify.tn</span>
                       </a>
                     </div>
                     <NavigationMenu className="hidden md:flex">

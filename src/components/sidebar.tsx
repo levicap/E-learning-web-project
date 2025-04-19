@@ -62,6 +62,14 @@ export default function SidebarContent() {
                 <BookOpen className="h-4 w-4 mr-2" />
                 Create Courses
               </Button>
+              <Button
+                variant="ghost"
+                className="w-full justify-start hover:bg-primary/10 hover:text-primary"
+                onClick={() => navigate("/studio")}
+              >
+                <BookOpen className="h-4 w-4 mr-2" />
+                Record Courses
+              </Button>
 
               <Button
                 variant="ghost"
