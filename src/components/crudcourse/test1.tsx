@@ -441,12 +441,7 @@ function Test() {
       {/* Navbar could be added here */}
       <div className="flex pt-16">
         {/* Sidebar */}
-        <aside className={cn(
-          "fixed left-0 top-16 z-40 h-[calc(100vh-4rem)] w-64 border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-transform",
-          "hidden md:block"
-        )}>
-          <SidebarContent />
-        </aside>
+       
 
         {/* Main Content */}
         <main className={cn("flex-1 p-6 transition-all bg-muted/30", isSidebarOpen ? "md:ml-64" : "")}>

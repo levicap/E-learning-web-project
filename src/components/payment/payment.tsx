@@ -19,27 +19,29 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import {
   CreditCard,
-  GoalIcon as PaypalIcon,
-  AppleIcon,
-  CirclePlayIcon as GooglePayIcon,
   Lock,
   CheckCircle2,
   ArrowRight,
-  Sparkles,
-  Users,
   BookOpen,
   Timer,
+  Users,
+  MapPin,
+  Info,
 } from "lucide-react";
 import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { useLocation } from "react-router-dom";
 import { useUser } from "@clerk/clerk-react";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+
 
 function Payment() {
   const { state } = useLocation();
   // Check if state contains a course or a session
   const course = state?.course;
   const session = state?.session;
+  const navigate = useNavigate();
+
   // Determine the payment amount based on whether a course or session is being purchased
   const amount = course
     ? Math.round(course.price * 100)
@@ -255,27 +257,24 @@ function Payment() {
             <CardHeader>
               <CardTitle>Payment Method</CardTitle>
               <CardDescription>
-                Complete your payment using Card, PayPal, Apple Pay, or Google Pay
+                Complete your payment using Card, Cheque, or D17
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {/* Updated TabsList: Card, Cheque, D17 */}
               <Tabs defaultValue="card" className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="card">
                     <CreditCard className="w-4 h-4 mr-2" />
                     Card
                   </TabsTrigger>
-                  <TabsTrigger value="paypal">
-                    <PaypalIcon className="w-4 h-4 mr-2" />
-                    PayPal
+                  <TabsTrigger value="cheque">
+                    <MapPin className="w-4 h-4 mr-2" />
+                    Cheque
                   </TabsTrigger>
-                  <TabsTrigger value="apple">
-                    <AppleIcon className="w-4 h-4 mr-2" />
-                    Apple
-                  </TabsTrigger>
-                  <TabsTrigger value="google">
-                    <GooglePayIcon className="w-4 h-4 mr-2" />
-                    Google Pay
+                  <TabsTrigger value="d17">
+                    <Info className="w-4 h-4 mr-2" />
+                    D17
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value="card">
@@ -310,27 +309,25 @@ function Payment() {
                     </div>
                   </motion.div>
                 </TabsContent>
-                <TabsContent value="paypal">
+                <TabsContent value="cheque">
                   <motion.div className="p-8 text-center" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
-                    <PaypalIcon className="w-16 h-16 mx-auto mb-4 text-blue-600" />
-                    <p className="text-muted-foreground">
-                      You will be redirected to PayPal to complete your purchase
+                    <MapPin className="w-16 h-16 mx-auto mb-4 text-red-600" />
+                    <p className="text-muted-foreground mb-2">
+                      Please meet at our payment center to pay by cheque
+                    </p>
+                    <p className="text-sm font-medium">
+                      Location: 123 Payment Street, Finance City, XY 12345
                     </p>
                   </motion.div>
                 </TabsContent>
-                <TabsContent value="apple">
+                <TabsContent value="d17">
                   <motion.div className="p-8 text-center" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
-                    <AppleIcon className="w-16 h-16 mx-auto mb-4" />
-                    <p className="text-muted-foreground">
-                      Complete your purchase with Apple Pay
+                    <Info className="w-16 h-16 mx-auto mb-4 text-green-600" />
+                    <p className="text-muted-foreground mb-2">
+                      Please transfer your payment using D17
                     </p>
-                  </motion.div>
-                </TabsContent>
-                <TabsContent value="google">
-                  <motion.div className="p-8 text-center" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
-                    <GooglePayIcon className="w-16 h-16 mx-auto mb-4 text-primary" />
-                    <p className="text-muted-foreground">
-                      Complete your purchase with Google Pay
+                    <p className="text-sm font-medium">
+                      D17 Number: 123-456-7890
                     </p>
                   </motion.div>
                 </TabsContent>
@@ -586,7 +583,8 @@ function Payment() {
                 </CardContent>
                 <CardFooter>
                   <motion.div className="w-full" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                    <Button className="w-full" size="lg">
+                    <Button className="w-full" size="lg"             onClick={() => navigate("/student-dashboard")}
+                    >
                       Go to Dashboard
                     </Button>
                   </motion.div>

@@ -387,7 +387,6 @@ function Sessioncrud() {
   return (
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
-      <SidebarContent />
 
       {/* Main Content */}
       <div className="flex-1 mt-20 p-8">

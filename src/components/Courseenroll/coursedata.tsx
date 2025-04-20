@@ -75,12 +75,6 @@ function CourseData() {
     };
   }, [user]);
 
-  useEffect(() => {
-    if (user?.id) {
-      fetchCourses();
-    }
-  }, [user]);
-
   const fetchCourses = async () => {
     try {
       const response = await fetch('http://localhost:5000/api/courses/instructor-courses', {
@@ -97,6 +91,12 @@ function CourseData() {
       console.error("Error fetching courses:", error);
     }
   };
+  useEffect(() => {
+      fetchCourses();
+    
+  }, [user]);
+
+ 
 
   const toggleFavorite = (courseId: number) => {
     setFavorites(prev =>

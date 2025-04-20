@@ -1,3 +1,6 @@
+// Enroll.jsx
+import { useLocation, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,13 +15,18 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { motion } from "framer-motion";
-import { useLocation, useNavigate } from "react-router-dom";
-import { CheckCircle2, Clock, BookOpen, Users, Star } from "lucide-react";
+import { CheckCircle2, Clock, Users, Star } from "lucide-react";
+import CourseReviewForm from "./CourseReviewForm";
+import { useUser } from "@clerk/clerk-react";
+import { useToast } from '@/components/ui/use-toast';
 
 function Enroll() {
   const { state } = useLocation();
   const navigate = useNavigate();
+  const { user } = useUser();
   const course = state?.course;
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const { toast } = useToast();
 
   console.log("Passed course data:", course);
 
@@ -37,8 +45,18 @@ function Enroll() {
 
   // Function to navigate to Payment component with course data
   const handleEnrollPayment = () => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to enroll in this course.",
+        variant: "destructive", // You can choose "default" or "destructive"
+      });
+      return;
+    }
+  
     navigate("/payment", { state: { course } });
   };
+  
 
   // Render each lesson in the curriculum
   const renderLessons = () => {
@@ -66,6 +84,31 @@ function Enroll() {
     typeof course.instructor === "object"
       ? course.instructor
       : { name: course.instructor, image: "https://via.placeholder.com/150" };
+
+  // Fetch enrollment status from the backend
+  useEffect(() => {
+    const checkEnrollment = async () => {
+      if (user && course._id) {
+        try {
+          const res = await fetch(
+            `http://localhost:5000/api/users/enrollment-status?courseId=${course._id}`,
+            {
+              headers: {
+                "Content-Type": "application/json",
+                "x-clerk-user-id": user.id,
+              },
+            }
+          );
+          const data = await res.json();
+          setIsEnrolled(data.enrolled);
+        } catch (error) {
+          console.error("Error checking enrollment status:", error);
+        }
+      }
+    };
+
+    checkEnrollment();
+  }, [user, course._id]);
 
   return (
     <div className="min-h-screen mt-20 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 py-12 px-4 sm:px-6 lg:px-8">
@@ -191,7 +234,9 @@ function Enroll() {
                       <AvatarImage
                         src={instructor.image || "https://via.placeholder.com/150"}
                       />
-                      <AvatarFallback>{instructor.name ? instructor.name[0] : "?"}</AvatarFallback>
+                      <AvatarFallback>
+                        {instructor.name ? instructor.name[0] : "?"}
+                      </AvatarFallback>
                     </Avatar>
                     <Badge className="absolute -top-2 -right-2">Featured</Badge>
                   </motion.div>
@@ -213,7 +258,7 @@ function Enroll() {
               <CardContent>
                 <div className="space-y-6">
                   <p className="text-lg leading-relaxed">
-                    With over 10 years of experience in web development, John has trained thousands of developers worldwide.
+                    With over 10 years of experience in web development, {instructor.name} has trained thousands of developers worldwide.
                   </p>
                   <Separator />
                 </div>
@@ -229,7 +274,44 @@ function Enroll() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  <p>Reviews content here...</p>
+                  {course.reviews && course.reviews.length > 0 ? (
+                    course.reviews.map((review, idx) => (
+                      <div key={idx} className="border p-4 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Avatar className="w-8 h-8">
+                            <AvatarFallback>
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="font-semibold">
+                          {user?.username}
+                          </span>
+                          <Star className="w-4 h-4 text-yellow-500" />
+                          <span>{review.rating}</span>
+                        </div>
+                        <p>{review.comment}</p>
+                        <span className="text-xs text-gray-500">
+                          {new Date(review.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <p>No reviews yet.</p>
+                  )}
+                </div>
+                <div className="mt-4">
+                  {isEnrolled ? (
+                    <CourseReviewForm
+                      courseId={course._id}
+                      onReviewSubmitted={(data) => {
+                        console.log("Review submitted:", data);
+                        // In a real app, refresh course details from the backend to update reviews
+                      }}
+                    />
+                  ) : (
+                    <p className="text-muted-foreground">
+                      You need to enroll in this course to submit a review.
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>

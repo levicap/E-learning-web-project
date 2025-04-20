@@ -612,13 +612,21 @@ function Learning() {
                                 <Trophy className="h-4 w-4" />
                                 Price: ${item.price}
                               </div>
+                              <p>Note:Join room with name of :{item.title} when time come for session</p>
                             </div>
                           )}
-                         <Button 
+                   <Button 
   className="w-full group-hover:bg-primary/90 transition-colors"
   onClick={() => {
-    navigate('/course-content', { state: { courseId: item._id } });
-    window.location.reload();
+    if (item.type === 'course') {
+      navigate('/course-content', { state: { courseId: item._id } });
+      window.location.reload();
+
+    } else {
+      navigate('/live', { state: { sessionId: item._id } });
+    }
+    // Optionally, you can call window.location.reload() if needed,
+    // but here we simply navigate using React Router.
   }}
 >
   {item.type === 'course' ? 'Continue Learning' : 'Join Session'}
