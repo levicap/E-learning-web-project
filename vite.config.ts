@@ -7,9 +7,20 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+
     },
   },
   optimizeDeps: {
-    exclude: ['lucide-react'],
+    exclude: ['lucide-react', '@ffmpeg/ffmpeg', '@ffmpeg/util', '@ffmpeg/ffmpeg/dist/ffmpeg.min.js'],
+  },
+  
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          ffmpeg: ['@ffmpeg/ffmpeg', '@ffmpeg/util'],
+        },
+      },
+    },
   },
 });

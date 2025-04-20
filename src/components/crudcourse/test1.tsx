@@ -44,10 +44,13 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import CreateCourseDialog from './create';
-import SidebarContent from './sidebar';
 import { z } from 'zod';
+
 // Import Clerk hook
 import { useUser } from '@clerk/clerk-react';
+// Adapted shadcn toast imports
+import { useToast } from '@/hooks/use-toast';
+import { Toaster } from '@/components/ui/toaster';
 
 //
 // TypeScript Interfaces
@@ -123,6 +126,9 @@ function Test() {
   const { user } = useUser();
   console.log('Clerk user:', user);
 
+  // Retrieve toast method from shadcn toast hook
+  const { toast } = useToast();
+
   // Memoize headers so they update only when user changes
   const authHeaders = useMemo(() => {
     return {
@@ -135,7 +141,8 @@ function Test() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [totalCourses, setTotalCourses] = useState<number>(0);
   const [totalRevenue, setTotalRevenue] = useState<number>(0);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  // New state for teacher's enrolled students count
+  const [teacherEnrolledCount, setTeacherEnrolledCount] = useState<number>(0);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   // --- Course Editing State ---
@@ -183,12 +190,12 @@ function Test() {
     if (user) {
       fetchCourses();
       fetchTotalStats();
+      fetchTeacherEnrolledCount();
     }
   }, [user]);
 
   const fetchCourses = async () => {
     try {
-      // Debug log headers
       console.log('Fetching courses with headers:', authHeaders);
       const response = await fetch('http://localhost:5000/api/courses', {
         headers: authHeaders,
@@ -197,6 +204,7 @@ function Test() {
       setCourses(data);
     } catch (err) {
       console.error('Error fetching courses:', err);
+      toast({ title: "Error fetching courses", variant: "destructive" });
     }
   };
 
@@ -210,6 +218,21 @@ function Test() {
       setTotalRevenue(data.totalRevenue);
     } catch (err) {
       console.error('Error fetching total stats:', err);
+      toast({ title: "Error fetching stats", variant: "destructive" });
+    }
+  };
+
+  // New function to fetch teacher enrolled students count
+  const fetchTeacherEnrolledCount = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/courses/totlaenrolledstudents', {
+        headers: authHeaders,
+      });
+      const data = await response.json();
+      setTeacherEnrolledCount(data.totalEnrolled);
+    } catch (err) {
+      console.error('Error fetching enrolled count:', err);
+      toast({ title: "Error fetching enrolled students count", variant: "destructive" });
     }
   };
 
@@ -230,9 +253,13 @@ function Test() {
         setCourses(courses.filter(c => c._id !== courseToDelete._id));
         setDeleteCourseDialogOpen(false);
         setCourseToDelete(null);
+        toast({ title: "Course deleted", description: "Course deleted successfully", variant: "default" });
+      } else {
+        toast({ title: "Error deleting course", variant: "destructive" });
       }
     } catch (err) {
       console.error('Error deleting course:', err);
+      toast({ title: "Error deleting course", variant: "destructive" });
     }
   };
 
@@ -278,7 +305,7 @@ function Test() {
       const res = await fetch(`http://localhost:5000/api/courses/${editingCourse._id}`, {
         method: 'PUT',
         headers: {
-          // Do not set Content-Type when sending FormData; include custom header only
+          // Do not include Content-Type when sending FormData
           'x-clerk-user-id': user?.id || '',
         },
         body: formData,
@@ -287,11 +314,15 @@ function Test() {
       setCourses(prev => prev.map(c => c._id === updatedCourse._id ? updatedCourse : c));
       setEditCourseDialogOpen(false);
       setEditingCourse(null);
+      toast({ title: "Course updated", description: "Course updated successfully", variant: "default" });
     } catch (err: any) {
       if (err instanceof z.ZodError) {
-        setEditCourseError(err.errors.map(e => e.message).join(", "));
+        const errorMessage = err.errors.map(e => e.message).join(", ");
+        setEditCourseError(errorMessage);
+        toast({ title: errorMessage, variant: "destructive" });
       } else {
         setEditCourseError("Error updating course");
+        toast({ title: "Error updating course", variant: "destructive" });
       }
     }
   };
@@ -358,11 +389,15 @@ function Test() {
       }));
       setEditLessonDialogOpen(false);
       setEditingLesson(null);
+      toast({ title: "Lesson updated", description: "Lesson updated successfully", variant: "default" });
     } catch (err: any) {
       if (err instanceof z.ZodError) {
-        setEditLessonError(err.errors.map(e => e.message).join(", "));
+        const errorMessage = err.errors.map(e => e.message).join(", ");
+        setEditLessonError(errorMessage);
+        toast({ title: errorMessage, variant: "destructive" });
       } else {
         setEditLessonError("Error updating lesson");
+        toast({ title: "Error updating lesson", variant: "destructive" });
       }
     }
   };
@@ -402,9 +437,10 @@ function Test() {
       formData.append('title', parsedData.title);
       formData.append('description', parsedData.description || '');
       formData.append('duration', parsedData.duration.toString());
-      formData.append('videoLink', parsedData.videoLink || '');
       if (parsedData.videoFile) {
         formData.append('video', parsedData.videoFile);
+      } else if (parsedData.videoLink) {
+        formData.append('videoLink', parsedData.videoLink);
       }
       const res = await fetch(`http://localhost:5000/api/courses/${currentCourseForLesson._id}/lessons`, {
         method: 'POST',
@@ -414,19 +450,24 @@ function Test() {
         body: formData,
       });
       const data = await res.json();
-      setCourses(prev => prev.map(course => {
-        if (course._id === currentCourseForLesson._id) {
-          return { ...course, lessons: [...course.lessons, data.lesson] };
-        }
-        return course;
-      }));
+      setCourses(prev =>
+        prev.map(course =>
+          course._id === currentCourseForLesson._id
+            ? { ...course, lessons: [...course.lessons, data.lesson] }
+            : course
+        )
+      );
       setAddLessonDialogOpen(false);
       setCurrentCourseForLesson(null);
+      toast({ title: "Lesson added", description: "Lesson added successfully", variant: "default" });
     } catch (err: any) {
       if (err instanceof z.ZodError) {
-        setAddLessonError(err.errors.map(e => e.message).join(", "));
+        const errorMessage = err.errors.map(e => e.message).join(", ");
+        setAddLessonError(errorMessage);
+        toast({ title: errorMessage, variant: "destructive" });
       } else {
         setAddLessonError("Error adding lesson");
+        toast({ title: "Error adding lesson", variant: "destructive" });
       }
     }
   };
@@ -438,13 +479,12 @@ function Test() {
 
   return (
     <div className={cn("min-h-screen bg-background", isDarkMode ? 'dark' : '')}>
+      {/* Toaster for shadcn toast notifications */}
+      <Toaster />
       {/* Navbar could be added here */}
       <div className="flex pt-16">
-        {/* Sidebar */}
-       
-
-        {/* Main Content */}
-        <main className={cn("flex-1 p-6 transition-all bg-muted/30", isSidebarOpen ? "md:ml-64" : "")}>
+        {/** Removed Sidebar layout */}
+        <main className="flex-1 p-6 transition-all bg-muted/30">
           <div className="flex flex-col gap-6">
             {/* Stats Overview */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -454,7 +494,8 @@ function Test() {
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">2,579</div>
+                  {/* Display the teacher enrolled count fetched from the API */}
+                  <div className="text-2xl font-bold">{teacherEnrolledCount}</div>
                   <p className="text-xs text-muted-foreground">+20.1% from last month</p>
                 </CardContent>
               </Card>

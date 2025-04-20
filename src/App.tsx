@@ -39,6 +39,9 @@ import { Toaster } from "@/components/ui/toaster"; // ✅ Correct import
 
 const queryClient = new QueryClient();
 
+import Studio from './components/studio/studio';
+import CustomSettings from './components/settings/setting';
+import Help from './components/help/help';
 // Initialize Stripe with your public key
 const stripePromise = loadStripe('pk_test_51QyuUQAlzb98dcXiqKOAprivh0Ms3PdVIlR74mAcwPfGxaHhPfUBek8zJ0o3SejlP0jniOCHePHsQP8YOrmzrO1s00LAPjBeRb');
 
@@ -145,6 +148,9 @@ function AppContent() {
             <Route path="/admincourse" element={<CoursesTable />} />
             <Route path="/admin" element={<AnalyticsPage />} />
 
+            <Route path="/studio" element={<Studio />} />
+            <Route path="/settings" element={<CustomSettings />} />
+            <Route path="/help" element={<Help />} />
           </Routes>
         </main>
       </div>
