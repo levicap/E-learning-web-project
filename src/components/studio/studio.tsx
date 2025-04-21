@@ -2,7 +2,20 @@ import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Video as VideoIcon, Play,Pause,Mic, PenTool, Code2, GitBranch, Presentation, FileSpreadsheet, BarChart, BookOpen } from 'lucide-react';
+import {
+  Video as VideoIcon,
+  Play,
+  Pause,
+  Mic,
+  PenTool,
+  Code2,
+  GitBranch,
+  Presentation,
+  FileSpreadsheet,
+  BarChart,
+  BookOpen,
+  Square
+} from 'lucide-react';
 import { useMediaRecorder } from '@/hooks/useMediaRecorder';
 import { Whiteboard } from './Whiteboard';
 import { CodeEditor } from './CodeEditor';
@@ -13,12 +26,21 @@ import { SpreadsheetToolbar } from "./spreadsheet/SpreadsheetToolbar";
 import { SpreadsheetGrid } from "./spreadsheet/SpreadsheetGrid";
 import { SlidesToolbar } from "./slides/SlidesToolbar";
 import { SlideEditor } from "./slides/SlideEditor";
-import AicourseGenerator from "./aiscript"; // New import for AI Course Generator
+import AicourseGenerator from "./aiscript";
+import Aiprediction from "./aipr/dashboard";  // ← new import
 
 function Studio() {
   const [recordingType, setRecordingType] = useState<'audio' | 'video'>('screen');
   const [activeTab, setActiveTab] = useState<
-    'preview' | 'whiteboard' | 'code' | 'mindmap' | 'slides' | 'spreadsheet' | 'analytics' | 'aicoursegenerator' | 'videoedit'
+    'preview'
+    | 'whiteboard'
+    | 'code'
+    | 'mindmap'
+    | 'slides'
+    | 'spreadsheet'
+    | 'aicoursegenerator'
+    | 'aiprediction'        // ← replaced analytics
+    | 'videoedit'
   >('preview');
 
   // Spreadsheet state
@@ -52,38 +74,19 @@ function Studio() {
     setSpreadsheetData(newData);
   };
 
-  const handleFormatChange = (format: string) => {
-    console.log("Format changed:", format);
-  };
-
-  const handleFunctionInsert = () => {
-    console.log("Insert function");
-  };
-
-  const handleFilter = () => {
-    console.log("Apply filter");
-  };
-
-  const handleSort = () => {
-    console.log("Sort data");
-  };
-
-  const handleChartInsert = () => {
-    console.log("Insert chart");
-  };
+  const handleFormatChange = (format: string) => console.log("Format changed:", format);
+  const handleFunctionInsert = () => console.log("Insert function");
+  const handleFilter = () => console.log("Apply filter");
+  const handleSort = () => console.log("Sort data");
+  const handleChartInsert = () => console.log("Insert chart");
 
   // Slides handlers
   const handleNewSlide = () => {
     setSlides([...slides, { id: slides.length + 1, content: [] }]);
   };
-
   const handleSlideContentChange = (slideId: number, content: any) => {
-    const newSlides = slides.map((slide) =>
-      slide.id === slideId ? { ...slide, content } : slide
-    );
-    setSlides(newSlides);
+    setSlides(slides.map(s => s.id === slideId ? { ...s, content } : s));
   };
-
   const handleInsertElement = (type: string) => {
     if (selectedSlide === null) return;
     const newSlides = [...slides];
@@ -163,7 +166,6 @@ function Studio() {
       return <AicourseGenerator />;
     }
     if (activeTab === 'videoedit') {
-      // Placeholder for Video Edit functionality.
       return (
         <Card>
           <CardContent className="p-4">
@@ -217,12 +219,8 @@ function Studio() {
             />
           </div>
         );
-      case 'analytics':
-        return (
-          <div className="h-[600px] flex items-center justify-center bg-muted rounded-lg">
-            <p className="text-muted-foreground">Analytics Dashboard Coming Soon</p>
-          </div>
-        );
+      case 'aiprediction':            // ← new AI Predictions tab
+        return <Aiprediction />;
       default:
         return null;
     }
@@ -234,98 +232,102 @@ function Studio() {
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-2">
             <Card>
-              <CardContent className="p-4">
-                <div className="space-y-2">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => {
-                      setRecordingType('video');
-                      setActiveTab('preview');
-                    }}
-                  >
-                    <VideoIcon className="mr-2 h-4 w-4" />
-                    Record
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => {
-                      setRecordingType('audio');
-                      setActiveTab('preview');
-                    }}
-                  >
-                    <Mic className="mr-2 h-4 w-4" />
-                    Audio
-                  </Button>
-                  <Separator />
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => setActiveTab('whiteboard')}
-                  >
-                    <PenTool className="mr-2 h-4 w-4" />
-                    Whiteboard
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => setActiveTab('code')}
-                  >
-                    <Code2 className="mr-2 h-4 w-4" />
-                    Code Editor
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => setActiveTab('mindmap')}
-                  >
-                    <GitBranch className="mr-2 h-4 w-4" />
-                    Mind Map
-                  </Button>
-                  <Separator />
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => setActiveTab('slides')}
-                  >
-                    <Presentation className="mr-2 h-4 w-4" />
-                    Slides
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => setActiveTab('spreadsheet')}
-                  >
-                    <FileSpreadsheet className="mr-2 h-4 w-4" />
-                    Spreadsheet
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => setActiveTab('analytics')}
-                  >
-                    <BarChart className="mr-2 h-4 w-4" />
-                    Analytics
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => setActiveTab('aicoursegenerator')}
-                  >
-                    <BookOpen className="mr-2 h-4 w-4" />
-                    AI Course Generator
-                  </Button>
-                  {/* New sidebar item for Video Edit */}
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => setActiveTab('videoedit')}
-                  >
-                    <VideoIcon className="mr-2 h-4 w-4" />
-                    Video Edit
-                  </Button>
-                </div>
+              <CardContent className="p-4 space-y-2">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setRecordingType('video');
+                    setActiveTab('preview');
+                  }}
+                >
+                  <VideoIcon className="mr-2 h-4 w-4" />
+                  Record
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setRecordingType('audio');
+                    setActiveTab('preview');
+                  }}
+                >
+                  <Mic className="mr-2 h-4 w-4" />
+                  Audio
+                </Button>
+
+                <Separator />
+
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => setActiveTab('whiteboard')}
+                >
+                  <PenTool className="mr-2 h-4 w-4" />
+                  Whiteboard
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => setActiveTab('code')}
+                >
+                  <Code2 className="mr-2 h-4 w-4" />
+                  Code Editor
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => setActiveTab('mindmap')}
+                >
+                  <GitBranch className="mr-2 h-4 w-4" />
+                  Mind Map
+                </Button>
+
+                <Separator />
+
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => setActiveTab('slides')}
+                >
+                  <Presentation className="mr-2 h-4 w-4" />
+                  Slides
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => setActiveTab('spreadsheet')}
+                >
+                  <FileSpreadsheet className="mr-2 h-4 w-4" />
+                  Spreadsheet
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => setActiveTab('aiprediction')}
+                >
+                  <BarChart className="mr-2 h-4 w-4" />
+                  AI Predictions
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => setActiveTab('aicoursegenerator')}
+                >
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  AI Course Generator
+                </Button>
+
+                <Separator />
+
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => setActiveTab('videoedit')}
+                >
+                  <VideoIcon className="mr-2 h-4 w-4" />
+                  Video Edit
+                </Button>
               </CardContent>
             </Card>
           </div>
