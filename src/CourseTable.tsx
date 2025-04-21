@@ -38,11 +38,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from '@/lib/utils';
 import CreateCourseDialog from './components/create';
 
+interface Instructor {
+  _id: string;
+  name: string;
+}
+
 interface Course {
   _id: string;
   title: string;
   description: string;
-  instructor: string;
+  instructor: Instructor | null;  // <-- can be null if something went wrong
   image: string;
   category: string;
   price: number;
@@ -175,13 +180,19 @@ export default function CoursesTable() {
       {
         accessorKey: 'instructor',
         header: 'Instructor',
-        cell: ({ row }) => (
-          <div className="flex items-center space-x-2">
-            <User className="w-4 h-4 text-gray-500" />
-            <span>{row.original.instructor.name}</span>
+        cell: ({ row }) => {
+          const instr = row.original.instructor;
+          // if instr is null or missing, show a dash; otherwise use instr.name
+          const label = instr?.name ?? '–';
+          return (
+            <div className="flex items-center space-x-2">
+              <User className="w-4 h-4 text-gray-500" />
+              <span>{label}</span>
             </div>
-        ),
+          );
+        },
       },
+      
       {
         accessorKey: 'category',
         header: 'Category',
@@ -201,16 +212,22 @@ export default function CoursesTable() {
           </div>
         ),
       },
-      {
-        accessorKey: 'rating',
-        header: 'Rating',
-        cell: ({ row }) => (
-          <div className="flex items-center space-x-1">
-            <Star className="w-4 h-4 text-yellow-400" />
-            <span>{row.original.rating.toFixed(1)}</span>
-          </div>
-        ),
-      },
+      // {
+      //   accessorKey: 'rating',
+      //   header: 'Rating',
+      //   cell: ({ row }) => {
+      //     // coerce to a number (default 0), then format one decimal place
+      //     const raw = row.original.rating;
+      //     const num = typeof raw === 'number' ? raw : Number(raw) || 0;
+      //     return (
+      //       <div className="flex items-center space-x-1">
+      //         <Star className="w-4 h-4 text-yellow-400" />
+      //         <span>{num.toFixed(1)}</span>
+      //       </div>
+      //     );
+      //   },
+      // },
+      
       {
         accessorKey: 'lessons',
         header: 'Lessons',

@@ -18,8 +18,7 @@ import { motion } from "framer-motion";
 import { CheckCircle2, Clock, Users, Star } from "lucide-react";
 import CourseReviewForm from "./CourseReviewForm";
 import { useUser } from "@clerk/clerk-react";
-import { useToast } from '@/components/ui/use-toast';
-
+import { useToast } from '@/hooks/use-toast';
 function Enroll() {
   const { state } = useLocation();
   const navigate = useNavigate();

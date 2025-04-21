@@ -50,7 +50,6 @@ import { z } from 'zod';
 import { useUser } from '@clerk/clerk-react';
 // Adapted shadcn toast imports
 import { useToast } from '@/hooks/use-toast';
-import { Toaster } from '@/components/ui/toaster';
 
 //
 // TypeScript Interfaces
@@ -480,7 +479,6 @@ function Test() {
   return (
     <div className={cn("min-h-screen bg-background", isDarkMode ? 'dark' : '')}>
       {/* Toaster for shadcn toast notifications */}
-      <Toaster />
       {/* Navbar could be added here */}
       <div className="flex pt-16">
         {/** Removed Sidebar layout */}

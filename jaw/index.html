@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>InfoShop | Accueil</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <div class="logo">InfoShop</div>
+    <nav>
+      <a href="index.html" class="active">Accueil</a>
+      <a href="shop.html">Catalogue</a>
+      <a href="cart.html">Panier <span id="cart-count">0</span></a>
+      <a href="#">Connexion</a>
+    </nav>
+    <div class="search-cart">
+      <input type="text" placeholder="Rechercher..." />
+      <a href="cart.html" class="cart-icon">🛒 <span id="cart-count-mobile">0</span></a>
+    </div>
+  </header>
+
+  <div class="main-banner">
+    <div class="banner-content">
+      <h1>Bienvenue chez InfoShop</h1>
+      <p>Les meilleurs produits informatiques aux meilleurs prix</p>
+      <a href="shop.html" class="btn">Découvrir</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <section class="categories">
+      <h2>Nos Catégories</h2>
+      <div class="category-grid">
+        <a href="shop.html?category=laptops" class="category">
+          <img src="/placeholder.svg?height=150&width=150" alt="Ordinateurs Portables">
+          <h3>Ordinateurs Portables</h3>
+        </a>
+        <a href="shop.html?category=desktops" class="category">
+          <img src="/placeholder.svg?height=150&width=150" alt="Ordinateurs de Bureau">
+          <h3>Ordinateurs de Bureau</h3>
+        </a>
+        <a href="shop.html?category=accessories" class="category">
+          <img src="/placeholder.svg?height=150&width=150" alt="Accessoires">
+          <h3>Accessoires</h3>
+        </a>
+        <a href="shop.html?category=components" class="category">
+          <img src="/placeholder.svg?height=150&width=150" alt="Composants">
+          <h3>Composants</h3>
+        </a>
+      </div>
+    </section>
+
+    <section>
+      <h2>Produits en promotion</h2>
+      <div class="products">
+        <div class="product" data-id="1" data-category="laptops">
+          <img src="/placeholder.svg?height=150&width=200" alt="Lenovo Ideapad" />
+          <h3>Lenovo Ideapad</h3>
+          <p>PC Portable performant avec 8GB RAM, 256GB SSD</p>
+          <div class="price">799 €</div>
+          <button class="add-to-cart">Ajouter au panier</button>
+        </div>
+        <div class="product" data-id="2" data-category="laptops">
+          <img src="/placeholder.svg?height=150&width=200" alt="HP Pavilion" />
+          <h3>HP Pavilion</h3>
+          <p>Design moderne, i5 11e Gén, écran Full HD</p>
+          <div class="price">899 €</div>
+          <button class="add-to-cart">Ajouter au panier</button>
+        </div>
+        <div class="product" data-id="3" data-category="accessories">
+          <img src="/placeholder.svg?height=150&width=200" alt="Souris Gaming" />
+          <h3>Souris Gaming RGB</h3>
+          <p>Souris ergonomique avec éclairage RGB</p>
+          <div class="price">49 €</div>
+          <button class="add-to-cart">Ajouter au panier</button>
+        </div>
+        <div class="product" data-id="4" data-category="components">
+          <img src="/placeholder.svg?height=150&width=200" alt="SSD 500GB" />
+          <h3>SSD 500GB</h3>
+          <p>Disque SSD haute performance</p>
+          <div class="price">79 €</div>
+          <button class="add-to-cart">Ajouter au panier</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <div class="footer-content">
+      <div class="footer-section">
+        <h3>À propos</h3>
+        <p>InfoShop est votre boutique spécialisée en produits informatiques de qualité.</p>
+      </div>
+      <div class="footer-section">
+        <h3>Contact</h3>
+        <p>Email: info@infoshop.com</p>
+        <p>Téléphone: +213 123 456 789</p>
+      </div>
+      <div class="footer-section">
+        <h3>Suivez-nous</h3>
+        <div class="social-links">
+          <a href="#">Facebook</a>
+          <a href="#">Twitter</a>
+          <a href="#">Instagram</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2023 InfoShop. Tous droits réservés.</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

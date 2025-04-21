@@ -2,11 +2,9 @@ import React, { useState, useEffect } from 'react';
 import Landing from "./components/Landing/landing";
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Test from "./components/crudcourse/test1";
-import Course from './components/course';
 import CourseDisplay from './components/Courseenroll/coursedisplay';
 import CourseEnroll from './components/Courseenroll/courseenroll';
 import Payment1 from './components/payment/payment1';
-import Setting1 from './components/settings/setting1';
 import Learning1 from './components/usercourses/learning1';
 import Quiz1 from './components/quiz/quiz1';
 import Gen1 from './components/quizaigen/gen1';
@@ -35,13 +33,13 @@ import UsersPage from '@/pages/admin/users/page';
 import AnalyticsPage from './AnalyticsPage'
 import CoursesTable from './CourseTable'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from "@/components/ui/toaster"; // ✅ Correct import
+import { Toaster } from '@/components/ui/toaster';
 
 const queryClient = new QueryClient();
 
-import Studio from './components/studio/studio';
-import CustomSettings from './components/settings/setting';
-import Help from './components/help/help';
+import Studio from '@/components/studio/studio';
+import CustomSettings from './components/help/help'
+import Help from '@/components/help/help';
 // Initialize Stripe with your public key
 const stripePromise = loadStripe('pk_test_51QyuUQAlzb98dcXiqKOAprivh0Ms3PdVIlR74mAcwPfGxaHhPfUBek8zJ0o3SejlP0jniOCHePHsQP8YOrmzrO1s00LAPjBeRb');
 
@@ -54,7 +52,10 @@ function AppContent() {
   // Define the routes where the sidebar should be visible.
   // Adjust the list as needed.
   const sidebarRoutes = [
-    '/Dashboard',
+    '/teacher-dashboard',
+    '/admin-dashboard',
+'/admin/users',
+'/admincourse',
     '/course',
     '/courses',
     '/payment',
@@ -120,14 +121,12 @@ function AppContent() {
           <Routes>
             <Route path="/role-check" element={<AuthRedirector />} />
             <Route path="/" element={<Landing />} />
-            <Route path="/Dashboard" element={<Test />} />
-            <Route path="/course" element={<Course />} />
+            <Route path="/teacher-dashboard" element={<Test />} />
             <Route path="/live" element={<VideoApp />} />
             <Route path="/Login" element={<Login />} />
             <Route path="/courses/enroll" element={<CourseEnroll />} />
             <Route path="/courses" element={<CourseDisplay />} />
             <Route path="/payment" element={<Payment1 />} />
-            <Route path="/s" element={<Setting1 />} />
             <Route path="/prog" element={<Learning1 />} />
             <Route path="/student-dashboard" element={<Learning1 />} />
             <Route path="/quiz" element={<Quiz1 />} />
@@ -146,7 +145,7 @@ function AppContent() {
             <Route path="/exam" element={<Exam />} />
             <Route path="/admin/users" element={<UsersPage />} />
             <Route path="/admincourse" element={<CoursesTable />} />
-            <Route path="/admin" element={<AnalyticsPage />} />
+            <Route path="/admin-dashboard" element={<AnalyticsPage />} />
 
             <Route path="/studio" element={<Studio />} />
             <Route path="/settings" element={<CustomSettings />} />

@@ -145,18 +145,43 @@ export default function SidebarContent() {
           )}
 
           {/* Admin-only options */}
-          {isAdmin && (
-            <>
-              <Button
-                variant="ghost"
+        {/* Admin-only options */}
+{isAdmin && (
+  <>
+     <Button
+      variant="ghost"
                 className="w-full justify-start hover:bg-primary/10 hover:text-primary"
-                onClick={() => navigate("/admin")}
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Admin Panel
-              </Button>
-            </>
-          )}
+      onClick={() => navigate("/admin/users")}
+    >
+      <Users className="h-4 w-4 mr-2" />
+      Users
+    </Button>
+    <Button
+     variant="ghost"
+                className="w-full justify-start hover:bg-primary/10 hover:text-primary"
+      onClick={() => navigate("/admincourse")}  // Changed from '/admincourse'
+    >
+      <BookOpen className="h-4 w-4 mr-2" />
+      Courses
+    </Button>
+    <Button
+     variant="ghost"
+                className="w-full justify-start hover:bg-primary/10 hover:text-primary"
+      onClick={() => navigate("/admin-dashboard")}  // Changed from '/admin-dashboard'
+    >
+      <Presentation className="h-4 w-4 mr-2" />
+      Analytics
+    </Button>
+    <Button
+     variant="ghost"
+                className="w-full justify-start hover:bg-primary/10 hover:text-primary"
+      onClick={() => navigate("/admin/settings")}
+    >
+      <Settings className="h-4 w-4 mr-2" />
+      System Settings
+    </Button>
+  </>
+)}
         </div>
       </div>
       <Separator />

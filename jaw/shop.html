@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>InfoShop | Catalogue</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <div class="logo">InfoShop</div>
+    <nav>
+      <a href="index.html">Accueil</a>
+      <a href="shop.html" class="active">Catalogue</a>
+      <a href="cart.html">Panier <span id="cart-count">0</span></a>
+      <a href="#">Connexion</a>
+    </nav>
+    <div class="search-cart">
+      <input type="text" placeholder="Rechercher..." id="search-input" />
+      <a href="cart.html" class="cart-icon">🛒 <span id="cart-count-mobile">0</span></a>
+    </div>
+  </header>
+
+  <div class="container shop-container">
+    <div class="sidebar">
+      <h3>Catégories</h3>
+      <ul class="category-list">
+        <li><a href="shop.html?category=all" class="category-link" data-category="all">Tous les produits</a></li>
+        <li><a href="shop.html?category=laptops" class="category-link" data-category="laptops">Ordinateurs Portables</a></li>
+        <li><a href="shop.html?category=desktops" class="category-link" data-category="desktops">Ordinateurs de Bureau</a></li>
+        <li><a href="shop.html?category=accessories" class="category-link" data-category="accessories">Accessoires</a></li>
+        <li><a href="shop.html?category=components" class="category-link" data-category="components">Composants</a></li>
+      </ul>
+    </div>
+
+    <div class="main-content">
+      <h1 id="category-title">Tous les produits</h1>
+      <div class="products" id="products-container">
+        <!-- Products will be loaded here by JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-content">
+      <div class="footer-section">
+        <h3>À propos</h3>
+        <p>InfoShop est votre boutique spécialisée en produits informatiques de qualité.</p>
+      </div>
+      <div class="footer-section">
+        <h3>Contact</h3>
+        <p>Email: info@infoshop.com</p>
+        <p>Téléphone: +213 123 456 789</p>
+      </div>
+      <div class="footer-section">
+        <h3>Suivez-nous</h3>
+        <div class="social-links">
+          <a href="#">Facebook</a>
+          <a href="#">Twitter</a>
+          <a href="#">Instagram</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2023 InfoShop. Tous droits réservés.</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
