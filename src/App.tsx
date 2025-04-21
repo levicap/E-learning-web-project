@@ -43,9 +43,6 @@ import { Toaster } from '@/components/ui/toaster';
 
 const queryClient = new QueryClient();
 
-import Studio from '@/components/studio/studio';
-import CustomSettings from './components/help/help'
-import Help from '@/components/help/help';
 // Initialize Stripe with your public key
 const stripePromise = loadStripe('pk_test_51QyuUQAlzb98dcXiqKOAprivh0Ms3PdVIlR74mAcwPfGxaHhPfUBek8zJ0o3SejlP0jniOCHePHsQP8YOrmzrO1s00LAPjBeRb');
 
