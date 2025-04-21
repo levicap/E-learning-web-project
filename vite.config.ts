@@ -13,6 +13,7 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['lucide-react', '@ffmpeg/ffmpeg', '@ffmpeg/util', '@ffmpeg/ffmpeg/dist/ffmpeg.min.js'],
   },
+ 
   
   build: {
     rollupOptions: {

@@ -24,11 +24,17 @@ import SesEnrollment from './components/sessionenr/sess';
 import SidebarContent from './components/sidebar';
 import Path from './components/path/aipath';
 import Chatbot from './components/chatbot/chatbot';
-import { Cpu, MessageSquare } from 'lucide-react';
+import { Cpu, MessageSquare,FileText  } from 'lucide-react';
 import Interview from './components/interviewbot/interview';
 import Study from './components/studybot/study';
 import Platformchat from './components/platfromchat/platfromchat';
 import Exam from './components/exam/exam';
+import Studio from './components/studio/studio';
+import CustomSettings from './components/settings/setting';
+import Help from './components/help/help';
+import  NoteTaking from './components/coursecontent/notetaking';
+import Aiprediction from './components/studio/aipr/Dashboard'
+
 import UsersPage from '@/pages/admin/users/page';
 import AnalyticsPage from './AnalyticsPage'
 import CoursesTable from './CourseTable'
@@ -70,6 +76,8 @@ function AppContent() {
   const showSidebar = sidebarRoutes.some(route =>
     location.pathname.startsWith(route)
   );
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [contentState, setContentState] = useState('');
 
   // Only show the floating EduBot on /course-content route, but allow toggling it
   const showFloatingChatbot = location.pathname === '/course-content';
@@ -150,9 +158,36 @@ function AppContent() {
             <Route path="/studio" element={<Studio />} />
             <Route path="/settings" element={<CustomSettings />} />
             <Route path="/help" element={<Help />} />
+            <Route path="/note-taking" element={<NoteTaking
+              isOpen={noteOpen}
+              setIsOpen={setNoteOpen}
+              contentState={contentState}
+              setContentState={setContentState}
+            />} />
+            <Route path="/aiprediction" element={<Aiprediction />} />
+
           </Routes>
         </main>
       </div>
+      {location.pathname === '/course-content' && (
+        <div className="fixed bottom-40 right-5 z-50">
+          <button
+            onClick={() => setNoteOpen(true)}
+            className="p-4 bg-gray-800 rounded-full shadow-lg hover:bg-gray-700 transition-colors"
+            title="Open Notes"
+          >
+            <FileText className="h-8 w-8 text-white" />
+          </button>
+        </div>
+      )}
+
+      {/* NoteTaking Dialog */}
+      <NoteTaking
+        isOpen={noteOpen}
+        setIsOpen={setNoteOpen}
+        contentState={contentState}
+        setContentState={setContentState}
+      />
 
       {/* Separate div for EduBot (floating chatbot) on /course-content */}
       {showFloatingChatbot && chatbotOpen && (
@@ -170,9 +205,10 @@ function AppContent() {
           </div>
         </div>
       )}
-
+  
+        {/* EduBot Icon to toggle */}
       {/* Separate div for PlatformChat (floating platform chat) */}
-      <div className="fixed bottom-0 right-4 z-50">
+      <div className="fixed bottom-2 right-4 z-50">
         <button
           onClick={togglePlatformChat}
           className="p-4 bg-gray-800 rounded-full shadow-lg hover:bg-gray-700 transition-colors"
@@ -199,7 +235,7 @@ function AppContent() {
 
       {/* EduBot Icon to toggle */}
       {showFloatingChatbot && (
-        <div className="fixed bottom-16 right-4 z-50">
+        <div className="fixed bottom-20 right-4 z-50">
           <button
             onClick={toggleEduBot}
             className="p-4 bg-gray-800 rounded-full shadow-lg hover:bg-gray-700 transition-colors"
