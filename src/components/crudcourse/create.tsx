@@ -1,41 +1,49 @@
 import { useState } from 'react';
 import { z } from 'zod';
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Upload } from 'lucide-react';
 import { useUser } from "@clerk/clerk-react";
 
-
-// Define a Zod schema for lessons
+// Lesson validation schema
 const LessonSchema = z.object({
   title: z.string().min(1, "Lesson title is required"),
   description: z.string().min(1, "Lesson description is required"),
   duration: z.number().min(0, "Duration must be a non-negative number"),
-  // Allow videoLink to be empty or a valid URL (must start with http or https if provided)
   videoLink: z.string().optional().refine(
     (val) => !val || /^(https?:\/\/)/.test(val),
     { message: "Video link must be a valid URL" }
   ),
-  // Use preprocess to convert non-File values (like null) to undefined so that the schema handles it correctly.
   videoFile: z.preprocess(
     (val) => (val instanceof File ? val : undefined),
     z.instanceof(File).optional()
   ),
 });
 
-// Define a Zod schema for courses
+// Course validation schema
 const CourseSchema = z.object({
   title: z.string().min(1, "Course title is required"),
   description: z.string().min(1, "Course description is required"),
   instructor: z.string().min(1, "Instructor is required"),
   price: z.number().min(0, "Price must be a non-negative number"),
-  // Preprocess the image to ensure that only a File passes validation
   image: z.preprocess(
     (val) => (val instanceof File ? val : undefined),
-    z.instanceof(File, { message: "Cover image is required" })
+    z.instanceof(File).optional()
+  ),
+  previewVideo: z.preprocess(
+    (val) => (val instanceof File ? val : undefined),
+    z.instanceof(File).optional()
   ),
   category: z.string().min(1, "Category is required"),
   lessons: z.array(LessonSchema),
@@ -43,7 +51,7 @@ const CourseSchema = z.object({
   progress: z.array(z.any()).optional(),
 });
 
-const CreateCourseDialog = () => {
+export const CreateCourseDialog = () => {
   const { user } = useUser();
 
   const [newCourse, setNewCourse] = useState({
@@ -52,6 +60,7 @@ const CreateCourseDialog = () => {
     instructor: '',
     price: 0,
     image: null,
+    previewVideo: null,
     category: '',
     lessons: [],
     students: [],
@@ -61,121 +70,117 @@ const CreateCourseDialog = () => {
   const [newLesson, setNewLesson] = useState({
     title: '',
     description: '',
-    duration: 0,           // Duration in minutes
+    duration: 0,
     videoLink: '',
     videoFile: null,
   });
 
   const [error, setError] = useState('');
 
-  // Handle image upload for course cover
+  // File input handlers
   const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setNewCourse({ ...newCourse, image: file });
-    }
+    const file = e.target.files?.[0] || null;
+    setNewCourse({ ...newCourse, image: file });
   };
-
-  // Handle video upload for lesson
+  const handlePreviewUpload = (e) => {
+    const file = e.target.files?.[0] || null;
+    setNewCourse({ ...newCourse, previewVideo: file });
+  };
   const handleVideoUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setNewLesson({ ...newLesson, videoFile: file });
-    }
+    const file = e.target.files?.[0] || null;
+    setNewLesson({ ...newLesson, videoFile: file });
+  };
+  const handleVideoLinkChange = (e) => {
+    setNewLesson({ ...newLesson, videoLink: e.target.value });
   };
 
-  // Add lesson to the course with Zod validation
+  // Add lesson
   const addLesson = () => {
-    // Validate newLesson data
-    const lessonResult = LessonSchema.safeParse(newLesson);
-    if (!lessonResult.success) {
-      const lessonErrors = lessonResult.error.errors.map(err => err.message).join(", ");
-      setError(lessonErrors);
+    const result = LessonSchema.safeParse(newLesson);
+    if (!result.success) {
+      setError(result.error.errors.map(err => err.message).join(', '));
       return;
     }
-    
-    // Clear any previous error before adding
     setError('');
     setNewCourse({
       ...newCourse,
-      lessons: [...newCourse.lessons, { ...newLesson }],
+      lessons: [...newCourse.lessons, newLesson],
     });
     setNewLesson({ title: '', description: '', duration: 0, videoLink: '', videoFile: null });
   };
 
-  // Reset the course form
+  // Reset form
   const resetCourseForm = () => {
+    setError('');
     setNewCourse({
       title: '',
       description: '',
       instructor: '',
       price: 0,
       image: null,
+      previewVideo: null,
       category: '',
       lessons: [],
       students: [],
       progress: [],
     });
     setNewLesson({ title: '', description: '', duration: 0, videoLink: '', videoFile: null });
-    setError('');
   };
 
-  // Create course and send to API with Zod validation
-  const addCourse = () => {
-    // Validate the course data using Zod
-    const courseResult = CourseSchema.safeParse(newCourse);
-    if (!courseResult.success) {
-      const courseErrors = courseResult.error.errors.map(err => err.message).join(", ");
-      setError(courseErrors);
+  // Submit course
+  const addCourse = async () => {
+    let updatedLessons = [...newCourse.lessons];
+  
+    if (newCourse.previewVideo) {
+      updatedLessons = [
+        {
+          title: "Preview",
+          description: "Preview video of the course",
+          duration: 0,
+          videoLink: '',
+          videoFile: newCourse.previewVideo,
+        },
+        ...newCourse.lessons,
+      ];
+    }
+  
+    const result = CourseSchema.safeParse({ ...newCourse, lessons: updatedLessons });
+    if (!result.success) {
+      setError(result.error.errors.map(err => err.message).join(', '));
       return;
     }
-
-    // Clear any error if validation passes
+  
     setError('');
-
     const formData = new FormData();
     formData.append('title', newCourse.title);
     formData.append('description', newCourse.description);
     formData.append('instructor', newCourse.instructor);
-    formData.append('price', newCourse.price.toString());
+    formData.append('price', String(newCourse.price));
     formData.append('category', newCourse.category);
     formData.append('students', JSON.stringify(newCourse.students));
     formData.append('progress', JSON.stringify(newCourse.progress));
-
-    if (newCourse.image) {
-      formData.append('image', newCourse.image);
-    }
-
-    // Remove videoFile from lessons before stringifying
-    const lessonsForJSON = newCourse.lessons.map(({ videoFile, ...lessonData }) => lessonData);
+    if (newCourse.image) formData.append('image', newCourse.image);
+    if (newCourse.previewVideo) formData.append('previewVideo', newCourse.previewVideo);
+  
+    const lessonsForJSON = updatedLessons.map(({ videoFile, ...rest }) => rest);
     formData.append('lessons', JSON.stringify(lessonsForJSON));
-
-    // Append each lesson's video file if available using keys "lessonVideo0", "lessonVideo1", etc.
-    newCourse.lessons.forEach((lesson, index) => {
-      if (lesson.videoFile) {
-        formData.append(`lessonVideo${index}`, lesson.videoFile);
-      }
+    updatedLessons.forEach((lesson, idx) => {
+      if (lesson.videoFile) formData.append(`lessonVideo${idx}`, lesson.videoFile);
     });
-
-    fetch('http://localhost:5000/api/courses', {
-      method: 'POST',
-      
-        headers: {
-          "x-clerk-user-id": user.id,
-        },
-      body: formData,
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        console.log('Course created:', data);
-        resetCourseForm();
-      })
-      .catch((error) => {
-        console.error('Error creating course:', error);
-        setError('Error creating course. Please try again later.');
+  
+    try {
+      const res = await fetch('http://localhost:5000/api/courses', {
+        method: 'POST',
+        headers: { 'x-clerk-user-id': user?.id || '' },
+        body: formData,
       });
+      if (!res.ok) throw new Error('Server error');
+      resetCourseForm();
+    } catch {
+      setError('Error creating course. Please try again later.');
+    }
   };
-
+  
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -194,132 +199,106 @@ const CreateCourseDialog = () => {
         {error && <div className="text-red-500 mb-4">{error}</div>}
 
         <div className="grid gap-4 py-4">
-          {/* Course Basic Fields */}
+          {/* Basic */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="title">Course Title</Label>
+            <div>
+              <Label htmlFor="title">Title</Label>
               <Input
                 id="title"
-                placeholder="e.g., Advanced Web Development"
                 value={newCourse.title}
                 onChange={(e) => setNewCourse({ ...newCourse, title: e.target.value })}
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="category">Category</Label>
-              <Input
-                id="category"
-                placeholder="e.g., Development"
-                value={newCourse.category}
-                onChange={(e) => setNewCourse({ ...newCourse, category: e.target.value })}
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              placeholder="Provide a detailed description of the course"
-              value={newCourse.description}
-              onChange={(e) => setNewCourse({ ...newCourse, description: e.target.value })}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
+            <div>
               <Label htmlFor="instructor">Instructor</Label>
               <Input
                 id="instructor"
-                placeholder="Instructor's full name"
                 value={newCourse.instructor}
                 onChange={(e) => setNewCourse({ ...newCourse, instructor: e.target.value })}
               />
             </div>
-            <div className="grid gap-2">
+          </div>
+
+          <Label htmlFor="description">Description</Label>
+          <Textarea
+            id="description"
+            value={newCourse.description}
+            onChange={(e) => setNewCourse({ ...newCourse, description: e.target.value })}
+          />
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
               <Label htmlFor="price">Price (USD)</Label>
               <Input
                 id="price"
                 type="number"
-                placeholder="99.99"
-                value={newCourse.price}
-                onChange={(e) => setNewCourse({ ...newCourse, price: parseFloat(e.target.value) })}
+                value={newCourse.price === 0 ? '' : newCourse.price}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setNewCourse({ ...newCourse, price: val === '' ? 0 : parseFloat(val) });
+                }}
               />
+            </div>
+            <div>
+              <Label htmlFor="category">Category</Label>
+              <Input
+                id="category"
+                value={newCourse.category}
+                onChange={(e) => setNewCourse({ ...newCourse, category: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="image">Cover Image</Label>
+              <Input id="image" type="file" onChange={handleImageUpload} />
+              {newCourse.image && (
+                <img
+                  src={URL.createObjectURL(newCourse.image)}
+                  alt="Cover"
+                  className="mt-2 w-full h-auto"
+                />
+              )}
             </div>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="image">Cover Image</Label>
-            <Input
-              id="image"
-              type="file"
-              onChange={handleImageUpload}
-            />
-            {newCourse.image && (
-              <img
-                src={URL.createObjectURL(newCourse.image)}
-                alt="Course Cover"
-                className="mt-2 w-full h-auto"
-              />
-            )}
+            <Label htmlFor="previewVideo">Preview Video (optional)</Label>
+            <Input id="previewVideo" type="file" accept="video/*" onChange={handlePreviewUpload} />
+            {newCourse.previewVideo && <div>Selected Preview: {newCourse.previewVideo.name}</div>}
           </div>
 
-          {/* Lessons Section */}
-          <div className="grid gap-4 mt-4">
+          {/* Lessons */}
+          <div className="mt-4">
             <Label>Add Lesson</Label>
-            <div className="grid gap-2">
+            <div className="grid grid-cols-2 gap-4">
               <Input
                 placeholder="Lesson Title"
                 value={newLesson.title}
                 onChange={(e) => setNewLesson({ ...newLesson, title: e.target.value })}
               />
-              <Textarea
-                placeholder="Lesson Description"
-                value={newLesson.description}
-                onChange={(e) => setNewLesson({ ...newLesson, description: e.target.value })}
-              />
               <Input
-                placeholder="Video URL (YouTube/Vimeo)"
-                value={newLesson.videoLink}
-                onChange={(e) => setNewLesson({ ...newLesson, videoLink: e.target.value })}
-              />
-              <Input
-                id="videoFile"
-                type="file"
-                onChange={handleVideoUpload}
-              />
-              {newLesson.videoFile && (
-                <div>
-                  <strong>Selected Video: </strong>
-                  {newLesson.videoFile.name}
-                </div>
-              )}
-              {/* Input for lesson duration */}
-              <Input
-                placeholder="Duration (minutes)"
+                placeholder="Duration (min)"
                 type="number"
-                value={newLesson.duration}
-                onChange={(e) => setNewLesson({ ...newLesson, duration: parseFloat(e.target.value) })}
+                value={newLesson.duration === 0 ? '' : newLesson.duration}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setNewLesson({ ...newLesson, duration: val === '' ? 0 : parseFloat(val) });
+                }}
               />
             </div>
-            <Button variant="outline" onClick={addLesson}>
-              Add Lesson
-            </Button>
+            <Textarea
+              placeholder="Lesson Description"
+              value={newLesson.description}
+              onChange={(e) => setNewLesson({ ...newLesson, description: e.target.value })}
+            />
+            <Input placeholder="Video URL" value={newLesson.videoLink} onChange={handleVideoLinkChange} />
+            <Input type="file" onChange={handleVideoUpload} />
+            {newLesson.videoFile && <div>Selected File: {newLesson.videoFile.name}</div>}
+            <Button variant="outline" onClick={addLesson}>Add Lesson</Button>
 
-            {/* Display added lessons */}
-            <ul className="mt-4">
-              {newCourse.lessons.map((lesson, index) => (
-                <li key={index}>
-                  <strong>{lesson.title}</strong> - {lesson.description}
-                  {lesson.duration !== undefined && (
-                    <div>Duration: {lesson.duration} minutes</div>
-                  )}
-                  {lesson.videoLink && (
-                    <div>
-                      Video: <a href={lesson.videoLink} target="_blank" rel="noopener noreferrer">{lesson.videoLink}</a>
-                    </div>
-                  )}
-                  {lesson.videoFile && <div>Video File: {lesson.videoFile.name}</div>}
+            <ul className="mt-4 list-disc list-inside">
+              {newCourse.lessons.map((lesson, idx) => (
+                <li key={idx}>
+                  <strong>{lesson.title}</strong> – {lesson.description} ({lesson.duration} min)
                 </li>
               ))}
             </ul>
