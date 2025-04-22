@@ -482,6 +482,7 @@ function Sessioncrud() {
                         {session.description}
                       </CardDescription>
                     </div>
+                    
                     <Badge
                       variant={
                         session.status === 'scheduled'
@@ -501,6 +502,10 @@ function Sessioncrud() {
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {format(new Date(session.date), 'PPP')} at {session.time}
                     </div>
+                    <p className="mb-6 text-sm text-gray-600">
+  You will need to create a room named exactly as the session title in order for students to join.
+</p>
+
                     <div className="flex items-center text-sm text-muted-foreground">
                       <Clock className="mr-2 h-4 w-4" />
                       {session.duration} minutes

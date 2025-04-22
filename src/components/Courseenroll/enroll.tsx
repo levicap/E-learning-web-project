@@ -144,7 +144,7 @@ function Enroll() {
                   className="flex items-center gap-2 bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm"
                 >
                   <Users className="w-5 h-5 text-blue-500" />
-                  <span>{course.students ? course.students : "N/A"} students</span>
+                  <span>{course.totalEnrolled ?? 0} students</span>
                 </motion.div>
                 <motion.div
                   whileHover={{ scale: 1.05 }}
@@ -277,10 +277,7 @@ function Enroll() {
                     course.reviews.map((review, idx) => (
                       <div key={idx} className="border p-4 rounded-lg">
                         <div className="flex items-center gap-2 mb-2">
-                          <Avatar className="w-8 h-8">
-                            <AvatarFallback>
-                            </AvatarFallback>
-                          </Avatar>
+                        
                           <span className="font-semibold">
                           {user?.username}
                           </span>

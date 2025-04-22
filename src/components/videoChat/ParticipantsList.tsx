@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -6,10 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import { Mic, MicOff, Crown, MoreHorizontal, Hand, Video, VideoOff, Shield } from 'lucide-react';
 import io, { Socket } from 'socket.io-client';
 import { useUser } from '@clerk/clerk-react';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
   DropdownMenuSub,
@@ -18,7 +17,7 @@ import {
   DropdownMenuPortal
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { 
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -39,6 +38,16 @@ interface Participant {
   joinTime?: Date;
 }
 
+interface Enrollment {
+  sessionId: string;
+  title: string;
+  students: { _id: string; name: string; clerkId: string }[];
+}
+
+interface UserData {
+  role: string;
+}
+
 interface ParticipantsListProps {
   channel: string;
   userId: string;
@@ -46,46 +55,76 @@ interface ParticipantsListProps {
   onPromoteUser?: (userId: string) => void;
 }
 
-const ParticipantsList: React.FC<ParticipantsListProps> = ({ 
-  channel, 
+const ParticipantsList: React.FC<ParticipantsListProps> = ({
+  channel,
   userId,
   userRole,
   onPromoteUser
 }) => {
   const { user } = useUser();
+  const clerkId = user?.id;
+
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  const [userData, setUserData] = useState<UserData | null>(null);
+
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
   const [showPromoteDialog, setShowPromoteDialog] = useState(false);
   const [showRemoveDialog, setShowRemoveDialog] = useState(false);
 
+  // 1) Fetch user details
   useEffect(() => {
-    const newSocket = io('http://localhost:5000');
-    setSocket(newSocket);
+    const fetchUser = async () => {
+      if (!clerkId) return;
+      try {
+        const res = await fetch(`http://localhost:5000/api/users/${clerkId}`);
+        const data: UserData = await res.json();
+        setUserData(data);
+      } catch (e) {
+        console.error('Error fetching user details:', e);
+      }
+    };
+    fetchUser();
+  }, [clerkId]);
 
-    newSocket.on('connect', () => {
+  // 2) Fetch today's enrollments (teachers only)
+  useEffect(() => {
+    if (!clerkId || userData?.role !== 'teacher') return;
+    fetch('http://localhost:5000/api/sessions/today-enrollments', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-clerk-user-id': clerkId
+      }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error(`Status ${res.status}`);
+        return res.json();
+      })
+      .then((data: Enrollment[]) => setEnrollments(data))
+      .catch(err => console.error('[Fetch enrollments error]', err));
+  }, [clerkId, userData]);
+
+  // 3) Socket.io connection
+  useEffect(() => {
+    const s = io('http://localhost:5000');
+    setSocket(s);
+
+    s.on('connect', () => {
       setIsConnected(true);
-      
-      newSocket.emit('join-room', { 
-        room: channel, 
+      s.emit('join-room', {
+        room: channel,
         username: user?.fullName || user?.username || 'Anonymous',
-        userId: userId
+        userId
       });
     });
+    s.on('connect_error', () => setIsConnected(false));
 
-    newSocket.on('connect_error', () => {
-      setIsConnected(false);
-    });
-
-    newSocket.on('participants-update', (updatedParticipants: Array<{
-      id: string;
-      name: string;
-      role: 'host' | 'participant' | 'moderator';
-      userId?: string;
-      joinTime?: Date;
-    }>) => {
-      setParticipants(updatedParticipants.map(p => ({
+    s.on('participants-update', (updated: any[]) => {
+      setParticipants(updated.map(p => ({
         id: p.id,
         name: p.name,
         role: p.role,
@@ -98,101 +137,119 @@ const ParticipantsList: React.FC<ParticipantsListProps> = ({
       })));
     });
 
-    // Listen for hand raise events
-    newSocket.on('hand-raised', (data: { userId: string, isRaised: boolean }) => {
-      setParticipants(prev => 
-        prev.map(p => 
-          p.userId === data.userId 
-            ? { ...p, isHandRaised: data.isRaised } 
-            : p
-        )
+    s.on('hand-raised', ({ userId: uid, isRaised }) => {
+      setParticipants(prev =>
+        prev.map(p => p.userId === uid ? { ...p, isHandRaised: isRaised } : p)
       );
     });
-
-    // Listen for mute/unmute events
-    newSocket.on('audio-state-change', (data: { userId: string, isMuted: boolean }) => {
-      setParticipants(prev => 
-        prev.map(p => 
-          p.userId === data.userId 
-            ? { ...p, isMuted: data.isMuted } 
-            : p
-        )
+    s.on('audio-state-change', ({ userId: uid, isMuted }) => {
+      setParticipants(prev =>
+        prev.map(p => p.userId === uid ? { ...p, isMuted } : p)
       );
     });
-
-    // Listen for video on/off events
-    newSocket.on('video-state-change', (data: { userId: string, isVideoOff: boolean }) => {
-      setParticipants(prev => 
-        prev.map(p => 
-          p.userId === data.userId 
-            ? { ...p, isVideoOff: data.isVideoOff } 
-            : p
-        )
+    s.on('video-state-change', ({ userId: uid, isVideoOff }) => {
+      setParticipants(prev =>
+        prev.map(p => p.userId === uid ? { ...p, isVideoOff } : p)
       );
     });
 
     return () => {
-      newSocket.disconnect();
+      s.disconnect();
     };
   }, [channel, user, userId]);
 
+  // Promote handler
   const handlePromoteUser = () => {
     if (!selectedParticipant) return;
-    
-    // Call the parent component's handler
-    if (onPromoteUser) {
-      onPromoteUser(selectedParticipant.userId || selectedParticipant.id);
-    }
-    
-    // Update local state
-    setParticipants(prev => 
-      prev.map(p => 
-        p.id === selectedParticipant.id 
-          ? { ...p, role: 'host' } 
-          : p
+    onPromoteUser?.(selectedParticipant.userId || selectedParticipant.id);
+    setParticipants(prev =>
+      prev.map(p =>
+        p.id === selectedParticipant.id ? { ...p, role: 'host' } : p
       )
     );
-    
-    // Emit to server
     socket?.emit('promote-participant', {
       room: channel,
       participantId: selectedParticipant.userId || selectedParticipant.id,
       newRole: 'host'
     });
-    
     setShowPromoteDialog(false);
     setSelectedParticipant(null);
   };
 
-  const handleRemoveParticipant = () => {
-    if (!selectedParticipant) return;
-    
-    // Remove from local state
-    setParticipants(prev => prev.filter(p => p.id !== selectedParticipant.id));
-    
-    // Emit to server
-    socket?.emit('remove-participant', {
-      room: channel,
-      participantId: selectedParticipant.userId || selectedParticipant.id
-    });
-    
-    setShowRemoveDialog(false);
-    setSelectedParticipant(null);
+  // Remove handler (kick via REST)
+  const handleRemoveParticipant = async () => {
+    if (!selectedParticipant || !clerkId) return;
+    try {
+      const res = await fetch(
+        `http://localhost:5000/api/rooms/${encodeURIComponent(channel)}/kick`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-clerk-user-id': clerkId
+          },
+          body: JSON.stringify({
+            hostClerkId: clerkId,
+            targetClerkId: selectedParticipant.userId
+          })
+        }
+      );
+      if (!res.ok) {
+        const { error } = await res.json();
+        throw new Error(error || `Status ${res.status}`);
+      }
+      setParticipants(prev =>
+        prev.filter(p => p.id !== selectedParticipant.id)
+      );
+    } catch (err) {
+      console.error('Failed to kick participant:', err);
+    } finally {
+      setShowRemoveDialog(false);
+      setSelectedParticipant(null);
+    }
   };
 
   const canManageParticipants = userRole === 'host';
 
   return (
     <div className="flex flex-col h-full">
+      {/* Header */}
       <div className="p-4 border-b">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Participants ({participants.length})</h3>
+          <h3 className="text-lg font-semibold">
+            Participants ({participants.length})
+          </h3>
           <Badge variant={isConnected ? "outline" : "destructive"} className="h-6">
             {isConnected ? "Connected" : "Disconnected"}
           </Badge>
         </div>
       </div>
 
+      {/* Students Enrolled Today (teachers only) */}
+      {userData?.role === 'teacher' && (
+        <div className="p-4 border-b bg-gray-50">
+          <h3 className="text-lg font-semibold mb-2">
+            Students Enrolled for Session:
+          </h3>
+          {enrollments.length === 0 ? (
+            <div className="text-muted-foreground">
+              No students enrolled
+            </div>
+          ) : (
+            enrollments.map(session => (
+              <div key={session.sessionId} className="mb-4">
+                <ul className="list-disc list-inside ml-4">
+                  {session.students.map(s => (
+                    <li key={s._id}>{s.name}</li>
+                  ))}
+                </ul>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Main Participants ScrollArea */}
       <ScrollArea className="flex-grow p-4">
         <div className="space-y-2">
           {participants.length === 0 ? (
@@ -201,48 +258,31 @@ const ParticipantsList: React.FC<ParticipantsListProps> = ({
             </div>
           ) : (
             <>
-              {/* Hosts first */}
-              {participants.filter(p => p.role === 'host').map((participant) => (
-                <div 
-                  key={participant.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
-                >
+              {/* Hosts */}
+              {participants.filter(p => p.role === 'host').map(participant => (
+                <div key={participant.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
                   <div className="flex items-center gap-3">
                     <Avatar>
                       <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${participant.name}`} />
                       <AvatarFallback>{participant.name[0]?.toUpperCase()}</AvatarFallback>
                     </Avatar>
-                    
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{participant.name}</span>
                         <Crown size={14} className="text-amber-500" />
                         {participant.userId === userId && (
-                          <Badge variant="secondary" className="text-xs h-5">You</Badge>
+                          <Badge variant="secondary" className="text-xs h-5">
+                            You
+                          </Badge>
                         )}
-                        {participant.isHandRaised && (
-                          <Hand size={14} className="text-yellow-500" />
-                        )}
+                        {participant.isHandRaised && <Hand size={14} className="text-yellow-500" />}
                       </div>
-                      <span className="text-xs text-muted-foreground">
-                        Host
-                      </span>
+                      <span className="text-xs text-muted-foreground">Host</span>
                     </div>
                   </div>
-                  
                   <div className="flex items-center gap-2">
-                    {participant.isMuted ? (
-                      <MicOff size={16} className="text-destructive" />
-                    ) : (
-                      <Mic size={16} className={participant.isSpeaking ? 'text-green-500' : 'text-muted-foreground'} />
-                    )}
-                    
-                    {participant.isVideoOff ? (
-                      <VideoOff size={16} className="text-destructive" />
-                    ) : (
-                      <Video size={16} className="text-muted-foreground" />
-                    )}
-                    
+                    {participant.isMuted ? <MicOff size={16} className="text-destructive" /> : <Mic size={16} className={participant.isSpeaking ? 'text-green-500' : 'text-muted-foreground'} />}
+                    {participant.isVideoOff ? <VideoOff size={16} className="text-destructive" /> : <Video size={16} className="text-muted-foreground" />}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -257,49 +297,32 @@ const ParticipantsList: React.FC<ParticipantsListProps> = ({
                   </div>
                 </div>
               ))}
-              
-              {/* Moderators next */}
-              {participants.filter(p => p.role === 'moderator').map((participant) => (
-                <div 
-                  key={participant.id}
-                  className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors"
-                >
+
+              {/* Moderators */}
+              {participants.filter(p => p.role === 'moderator').map(participant => (
+                <div key={participant.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
                   <div className="flex items-center gap-3">
                     <Avatar>
                       <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${participant.name}`} />
                       <AvatarFallback>{participant.name[0]?.toUpperCase()}</AvatarFallback>
                     </Avatar>
-                    
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{participant.name}</span>
                         <Shield size={14} className="text-blue-500" />
                         {participant.userId === userId && (
-                          <Badge variant="secondary" className="text-xs h-5">You</Badge>
+                          <Badge variant="secondary" className="text-xs h-5">
+                            You
+                          </Badge>
                         )}
-                        {participant.isHandRaised && (
-                          <Hand size={14} className="text-yellow-500" />
-                        )}
+                        {participant.isHandRaised && <Hand size={14} className="text-yellow-500" />}
                       </div>
-                      <span className="text-xs text-muted-foreground">
-                        Moderator
-                      </span>
+                      <span className="text-xs text-muted-foreground">Moderator</span>
                     </div>
                   </div>
-                  
                   <div className="flex items-center gap-2">
-                    {participant.isMuted ? (
-                      <MicOff size={16} className="text-destructive" />
-                    ) : (
-                      <Mic size={16} className={participant.isSpeaking ? 'text-green-500' : 'text-muted-foreground'} />
-                    )}
-                    
-                    {participant.isVideoOff ? (
-                      <VideoOff size={16} className="text-destructive" />
-                    ) : (
-                      <Video size={16} className="text-muted-foreground" />
-                    )}
-                    
+                    {participant.isMuted ? <MicOff size={16} className="text-destructive" /> : <Mic size={16} className={participant.isSpeaking ? 'text-green-500' : 'text-muted-foreground'} />}
+                    {participant.isVideoOff ? <VideoOff size={16} className="text-destructive" /> : <Video size={16} className="text-muted-foreground" />}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -312,21 +335,10 @@ const ParticipantsList: React.FC<ParticipantsListProps> = ({
                         {canManageParticipants && (
                           <>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              onClick={() => {
-                                setSelectedParticipant(participant);
-                                setShowPromoteDialog(true);
-                              }}
-                            >
+                            <DropdownMenuItem onClick={() => { setSelectedParticipant(participant); setShowPromoteDialog(true); }}>
                               Promote to host
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="text-destructive"
-                              onClick={() => {
-                                setSelectedParticipant(participant);
-                                setShowRemoveDialog(true);
-                              }}
-                            >
+                            <DropdownMenuItem className="text-destructive" onClick={() => { setSelectedParticipant(participant); setShowRemoveDialog(true); }}>
                               Remove from session
                             </DropdownMenuItem>
                           </>
@@ -336,48 +348,31 @@ const ParticipantsList: React.FC<ParticipantsListProps> = ({
                   </div>
                 </div>
               ))}
-              
-              {/* Regular participants last */}
-              {participants.filter(p => p.role === 'participant').map((participant) => (
-                <div 
-                  key={participant.id}
-                  className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors"
-                >
+
+              {/* Participants */}
+              {participants.filter(p => p.role === 'participant').map(participant => (
+                <div key={participant.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
                   <div className="flex items-center gap-3">
                     <Avatar>
                       <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${participant.name}`} />
                       <AvatarFallback>{participant.name[0]?.toUpperCase()}</AvatarFallback>
                     </Avatar>
-                    
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{participant.name}</span>
                         {participant.userId === userId && (
-                          <Badge variant="secondary" className="text-xs h-5">You</Badge>
+                          <Badge variant="secondary" className="text-xs h-5">
+                            You
+                          </Badge>
                         )}
-                        {participant.isHandRaised && (
-                          <Hand size={14} className="text-yellow-500" />
-                        )}
+                        {participant.isHandRaised && <Hand size={14} className="text-yellow-500" />}
                       </div>
-                      <span className="text-xs text-muted-foreground">
-                        Participant
-                      </span>
+                      <span className="text-xs text-muted-foreground">Participant</span>
                     </div>
                   </div>
-                  
                   <div className="flex items-center gap-2">
-                    {participant.isMuted ? (
-                      <MicOff size={16} className="text-destructive" />
-                    ) : (
-                      <Mic size={16} className={participant.isSpeaking ? 'text-green-500' : 'text-muted-foreground'} />
-                    )}
-                    
-                    {participant.isVideoOff ? (
-                      <VideoOff size={16} className="text-destructive" />
-                    ) : (
-                      <Video size={16} className="text-muted-foreground" />
-                    )}
-                    
+                    {participant.isMuted ? <MicOff size={16} className="text-destructive" /> : <Mic size={16} className={participant.isSpeaking ? 'text-green-500' : 'text-muted-foreground'} />}
+                    {participant.isVideoOff ? <VideoOff size={16} className="text-destructive" /> : <Video size={16} className="text-muted-foreground" />}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -394,27 +389,14 @@ const ParticipantsList: React.FC<ParticipantsListProps> = ({
                               <DropdownMenuSubTrigger>Change role</DropdownMenuSubTrigger>
                               <DropdownMenuPortal>
                                 <DropdownMenuSubContent>
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setSelectedParticipant(participant);
-                                      setShowPromoteDialog(true);
-                                    }}
-                                  >
+                                  <DropdownMenuItem onClick={() => { setSelectedParticipant(participant); setShowPromoteDialog(true); }}>
                                     Promote to host
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem>
-                                    Make moderator
-                                  </DropdownMenuItem>
+                                  <DropdownMenuItem>Make moderator</DropdownMenuItem>
                                 </DropdownMenuSubContent>
                               </DropdownMenuPortal>
                             </DropdownMenuSub>
-                            <DropdownMenuItem 
-                              className="text-destructive"
-                              onClick={() => {
-                                setSelectedParticipant(participant);
-                                setShowRemoveDialog(true);
-                              }}
-                            >
+                            <DropdownMenuItem className="text-destructive" onClick={() => { setSelectedParticipant(participant); setShowRemoveDialog(true); }}>
                               Remove from session
                             </DropdownMenuItem>
                           </>
@@ -435,12 +417,13 @@ const ParticipantsList: React.FC<ParticipantsListProps> = ({
           <DialogHeader>
             <DialogTitle>Promote Participant</DialogTitle>
             <DialogDescription>
-              Are you sure you want to promote {selectedParticipant?.name} to host? 
-              They will have full control over the session.
+              Are you sure you want to promote {selectedParticipant?.name} to host? They will have full control over the session.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPromoteDialog(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setShowPromoteDialog(false)}>
+              Cancel
+            </Button>
             <Button onClick={handlePromoteUser}>Promote to Host</Button>
           </DialogFooter>
         </DialogContent>
@@ -452,13 +435,16 @@ const ParticipantsList: React.FC<ParticipantsListProps> = ({
           <DialogHeader>
             <DialogTitle>Remove Participant</DialogTitle>
             <DialogDescription>
-              Are you sure you want to remove {selectedParticipant?.name} from the session? 
-              They will not be able to rejoin without a new invitation.
+              Are you sure you want to remove {selectedParticipant?.name} from the session? They will not be able to rejoin without a new invitation.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRemoveDialog(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleRemoveParticipant}>Remove</Button>
+            <Button variant="outline" onClick={() => setShowRemoveDialog(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleRemoveParticipant}>
+              Remove
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

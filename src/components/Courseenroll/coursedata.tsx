@@ -7,9 +7,6 @@ import {
   Filter,
   Code2,
   GraduationCap,
-  DollarSign,
-  Trophy,
-  Timer,
   Heart,
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -48,12 +45,12 @@ import {
 import { useUser } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
 
-
 function CourseData() {
   const navigate = useNavigate();
   const handleEnroll = (course: any) => {
     navigate('/courses/enroll', { state: { course } });
   };
+
   // Filter state variables
   const [searchQuery, setSearchQuery] = useState("");
   const [category, setCategory] = useState("all");
@@ -64,7 +61,6 @@ function CourseData() {
   const [favorites, setFavorites] = useState<number[]>([]);
   const [courses, setCourses] = useState([]);
   const { user } = useUser();
-  console.log('Clerk user:', user);
 
   // Build headers only when user is available.
   const authHeaders = useMemo(() => {
@@ -85,18 +81,15 @@ function CourseData() {
         throw new Error(errorData.message || 'Failed to fetch courses');
       }
       const data = await response.json();
-      console.log("Fetched courses:", data);
       setCourses(data);
     } catch (error) {
       console.error("Error fetching courses:", error);
     }
   };
-  useEffect(() => {
-      fetchCourses();
-    
-  }, [user]);
 
- 
+  useEffect(() => {
+    fetchCourses();
+  }, [user]);
 
   const toggleFavorite = (courseId: number) => {
     setFavorites(prev =>
@@ -109,7 +102,7 @@ function CourseData() {
   // Compute filtered courses based on filter state values
   const filteredCourses = useMemo(() => {
     return courses.filter(course => {
-      // Check search query match in title or description
+      // Search match
       const queryMatch =
         course.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         course.description?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -129,12 +122,12 @@ function CourseData() {
         if (price === "100-plus" && coursePrice <= 100) return false;
       }
 
-      // Level filter (if available)
+      // Level filter
       if (level !== "all" && course.level && course.level.toLowerCase() !== level.toLowerCase()) {
         return false;
       }
 
-      // Duration filter based on computed total duration from lessons (in minutes)
+      // Duration filter
       const totalDuration =
         course.lessons?.reduce((acc, lesson) => acc + Number(lesson.duration || 0), 0) || 0;
       if (duration !== "all") {
@@ -145,7 +138,6 @@ function CourseData() {
       return true;
     });
   }, [courses, searchQuery, category, price, level, duration]);
-  
 
   return (
     <div className="min-h-screen mt-20 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
@@ -199,9 +191,9 @@ function CourseData() {
                     <SelectContent>
                       <SelectItem value="all">All Prices</SelectItem>
                       <SelectItem value="free">Free</SelectItem>
-                      <SelectItem value="under-50">Under $50</SelectItem>
-                      <SelectItem value="50-100">$50 - $100</SelectItem>
-                      <SelectItem value="100-plus">$100+</SelectItem>
+                      <SelectItem value="under-50">Under 50 د.ت</SelectItem>
+                      <SelectItem value="50-100">50 - 100 د.ت</SelectItem>
+                      <SelectItem value="100-plus">100+ د.ت</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -248,12 +240,11 @@ function CourseData() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCourses.length > 0 ? (
             filteredCourses.map((course: any) => {
-              // Compute total duration (in minutes) by summing all lesson durations
               const totalDuration =
                 course.lessons?.reduce((acc, lesson) => acc + Number(lesson.duration || 0), 0) || 0;
               return (
-                <Card 
-                  key={course.id || course._id} 
+                <Card
+                  key={course._id}
                   className="group overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white/60 backdrop-blur-lg dark:bg-gray-800/60"
                 >
                   <div className="relative h-48 overflow-hidden">
@@ -274,21 +265,15 @@ function CourseData() {
                               variant="outline"
                               size="icon"
                               className="h-8 w-8 bg-white/90 backdrop-blur-sm hover:bg-white"
-                              onClick={() => toggleFavorite(course.id || course._id)}
+                              onClick={() => toggleFavorite(course._id)}
                             >
                               <Heart
-                                className={`h-4 w-4 ${
-                                  favorites.includes(course.id || course._id)
-                                    ? "fill-red-500 text-red-500"
-                                    : "text-gray-500"
-                                }`}
+                                className={`h-4 w-4 ${favorites.includes(course._id) ? 'fill-red-500 text-red-500' : 'text-gray-500'}`}
                               />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>
-                            {favorites.includes(course.id || course._id)
-                              ? "Remove from favorites"
-                              : "Add to favorites"}
+                            {favorites.includes(course._id) ? 'Remove from favorites' : 'Add to favorites'}
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
@@ -298,18 +283,12 @@ function CourseData() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <div className="p-2 bg-primary/10 rounded-lg">
-                          {course.icon ? (
-                            <course.icon className="h-5 w-5 text-primary" />
-                          ) : (
-                            <Code2 className="h-5 w-5 text-primary" />
-                          )}
+                          <Code2 className="h-5 w-5 text-primary" />
                         </div>
                         <CardTitle className="text-xl">{course.title}</CardTitle>
                       </div>
                     </div>
-                    <CardDescription className="line-clamp-2">
-                      {course.description}
-                    </CardDescription>
+                    <CardDescription className="line-clamp-2">{course.description}</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 gap-4">
@@ -319,7 +298,7 @@ function CourseData() {
                       </div>
                       <div className="flex items-center space-x-2">
                         <Users className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm text-gray-600">{course.students?.toLocaleString()} students</span>
+                        <span className="text-sm text-gray-600">{course.totalEnrolled.toLocaleString()} students</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Star className="h-4 w-4 text-yellow-400" />
@@ -328,16 +307,12 @@ function CourseData() {
                     </div>
                     <div className="mt-4 flex items-center space-x-2">
                       <GraduationCap className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm text-gray-600">
-                        Instructor:{" "}
-                        {course.instructor?.name ? course.instructor.name : course.instructor}
-                      </span>
+                      <span className="text-sm text-gray-600">Instructor: {course.instructor.name}</span>
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-between items-center">
                     <div className="flex items-center space-x-2">
-                      <DollarSign className="h-5 w-5 text-green-600" />
-                      <span className="text-2xl font-bold">{course.price}</span>
+                      <span className="text-2xl font-bold">{course.price} د.ت</span>
                     </div>
                     <Button onClick={() => handleEnroll(course)} className="bg-gradient-to-r from-primary to-purple-600 hover:scale-105 transition-transform">
                       Enroll Now

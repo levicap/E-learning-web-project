@@ -360,7 +360,7 @@ const AnalyticsPage = () => {
   }
 
   return (
-    <ScrollArea className="h-screen">
+    <ScrollArea className="h-screen mt-20">
       <div className="container mx-auto p-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Analytics Dashboard</h1>

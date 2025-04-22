@@ -79,7 +79,7 @@ const  navigate = useNavigate();
                 <div className="mr-8 hidden md:flex">
                   <a href="/" className="flex items-center space-x-2">
                     <Sparkles className="h-6 w-6 text-primary" />
-                    <span className="font-bold text-xl">LearnHub</span>
+                    <span className="font-bold text-xl">Learnify.tn</span>
                   </a>
                 </div>
                 <NavigationMenu className="hidden md:flex">
@@ -97,9 +97,9 @@ const  navigate = useNavigate();
                       </NavigationMenuLink>
                     </NavigationMenuItem>
                     <NavigationMenuItem>
-                      <NavigationMenuLink className={navigationMenuTriggerStyle()} href="/community">
+                      <NavigationMenuLink className={navigationMenuTriggerStyle()} href="/sessions">
                         <Users2 className="h-4 w-4 mr-2" />
-                        Community
+                        sessions
                       </NavigationMenuLink>
                     </NavigationMenuItem>
                   </NavigationMenuList>

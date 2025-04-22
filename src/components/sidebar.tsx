@@ -57,7 +57,7 @@ export default function SidebarContent() {
               <Button
                 variant="ghost"
                 className="w-full justify-start hover:bg-primary/10 hover:text-primary"
-                onClick={() => navigate("/dashboard")}
+                onClick={() => navigate("/teacher-dashboard")}
               >
                 <BookOpen className="h-4 w-4 mr-2" />
                 Create Courses

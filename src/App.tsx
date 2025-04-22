@@ -1,30 +1,51 @@
-import React, { useState, useEffect } from 'react';
-import Landing from "./components/Landing/landing";
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import Test from "./components/crudcourse/test1";
-import CourseDisplay from './components/Courseenroll/coursedisplay';
-import CourseEnroll from './components/Courseenroll/courseenroll';
-import Payment1 from './components/payment/payment1';
-import Learning1 from './components/usercourses/learning1';
-import Quiz1 from './components/quiz/quiz1';
-import Gen1 from './components/quizaigen/gen1';
-import Session1 from './components/sessioncrud/session1';
+// src/App.tsx
+
+import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import { Elements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from '@/components/ui/toaster';
+import { useUser } from '@clerk/clerk-react';
+
+// Layout & UI
 import Navbar from '@/components/Landing/Navbar';
+import SidebarContent from './components/sidebar';
+
+// Auth & Guards
 import Login from '@/components/auth/Login';
 import Register from '@/components/auth/Register';
 import RoleSelection from './components/auth/RoleSelection';
 import AuthRedirector from './components/auth/AuthRedirector ';
-import VideoApp from './components/videoChat/VideoApp';
-import CourseContent from './components/coursecontent/coursecontent';
-import { Elements } from '@stripe/react-stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
-import PaymentPage from './components/Stripe/payme';
-import Allsessions from './components/allsessions/se';
-import SesEnrollment from './components/sessionenr/sess';
-import SidebarContent from './components/sidebar';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import Unauthorized from './components/auth/Unauthorized';
+
+// Pages & Features
+import Landing from "./components/Landing/landing";
+import CourseDisplay from './components/Courseenroll/coursedisplay';
+import CourseEnroll from './components/Courseenroll/courseenroll';
 import Path from './components/path/aipath';
 import Chatbot from './components/chatbot/chatbot';
-import { Cpu, MessageSquare,FileText  } from 'lucide-react';
+import Test from "./components/crudcourse/test1";
+import AnalyticsPage from './AnalyticsPage';
+import UsersPage from '@/pages/admin/users/page';
+import CoursesTable from './CourseTable';
+
+import CourseContent from './components/coursecontent/coursecontent';
+import NoteTaking from './components/coursecontent/notetaking';
+import Aiprediction from './components/studio/aipr/Dashboard';
+
+import Learning1 from './components/usercourses/learning1';
+import VideoApp from './components/videoChat/VideoApp';
+import Quiz1 from './components/quiz/quiz1';
+import Gen1 from './components/quizaigen/gen1';
+import Session1 from './components/sessioncrud/session1';
+import Allsessions from './components/allsessions/se';
+import SesEnrollment from './components/sessionenr/sess';
+
+import Payment1 from './components/payment/payment1';
+import PaymentPage from './components/Stripe/payme';
+
 import Interview from './components/interviewbot/interview';
 import Study from './components/studybot/study';
 import Platformchat from './components/platfromchat/platfromchat';
@@ -32,141 +53,299 @@ import Exam from './components/exam/exam';
 import Studio from './components/studio/studio';
 import CustomSettings from './components/settings/setting';
 import Help from './components/help/help';
-import  NoteTaking from './components/coursecontent/notetaking';
-import Aiprediction from './components/studio/aipr/Dashboard'
 
-import UsersPage from '@/pages/admin/users/page';
-import AnalyticsPage from './AnalyticsPage'
-import CoursesTable from './CourseTable'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from '@/components/ui/toaster';
+import { Cpu, MessageSquare, FileText } from 'lucide-react';
 
+const stripePromise = loadStripe(
+  'pk_test_51QyuUQAlzb98dcXiqKOAprivh0Ms3PdVIlR74mAcwPfGxaHhPfUBek8zJ0o3SejlP0jniOCHePHsQP8YOrmzrO1s00LAPjBeRb'
+);
 const queryClient = new QueryClient();
 
-// Initialize Stripe with your public key
-const stripePromise = loadStripe('pk_test_51QyuUQAlzb98dcXiqKOAprivh0Ms3PdVIlR74mAcwPfGxaHhPfUBek8zJ0o3SejlP0jniOCHePHsQP8YOrmzrO1s00LAPjBeRb');
-
-// Wrapper component to use location hook
 function AppContent() {
-  const [chatbotOpen, setChatbotOpen] = useState(false);  // For EduBot
-  const [platformChatOpen, setPlatformChatOpen] = useState(false);  // For PlatformChat
+  const { user, isLoaded } = useUser();
+  const isSignedIn = isLoaded && !!user;
+
+  const [chatbotOpen, setChatbotOpen] = useState(false);
+  const [platformChatOpen, setPlatformChatOpen] = useState(false);
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [contentState, setContentState] = useState('');
   const location = useLocation();
 
-  // Define the routes where the sidebar should be visible.
-  // Adjust the list as needed.
+  // Sidebar logic: only for signed‑in users on certain routes
   const sidebarRoutes = [
     '/teacher-dashboard',
     '/admin-dashboard',
-'/admin/users',
-'/admincourse',
-    '/course',
+    '/admin/users',
+    '/admincourse',
     '/courses',
-    '/payment',
-    '/student-dashboard',
-    '/course-content',
-    '/session',
     '/quiz',
     '/quiz-ai',
-    '/live'
-    // add more as needed
+    '/session',
+    '/studio',
+    '/settings',
+    '/course-content',
+    '/student-dashboard',
+    '/live',
+    '/help',
   ];
-  const showSidebar = sidebarRoutes.some(route =>
-    location.pathname.startsWith(route)
-  );
-  const [noteOpen, setNoteOpen] = useState(false);
-  const [contentState, setContentState] = useState('');
+  const showSidebar = isSignedIn && sidebarRoutes.some(r => location.pathname.startsWith(r));
 
-  // Only show the floating EduBot on /course-content route, but allow toggling it
+  // EduBot toggle appears only on /course-content
   const showFloatingChatbot = location.pathname === '/course-content';
 
-  // Toggle the PlatformChat, close the EduBot if open
   const togglePlatformChat = () => {
-    console.log("Toggling PlatformChat...");
     setPlatformChatOpen(prev => !prev);
-    if (chatbotOpen) {
-      console.log("Closing EduBot as PlatformChat is opened.");
-      setChatbotOpen(false);  // Close EduBot if it's open
-    }
+    if (chatbotOpen) setChatbotOpen(false);
   };
-
-  // Toggle the EduBot, close the PlatformChat if open
   const toggleEduBot = () => {
-    console.log("Toggling EduBot...");
-    setChatbotOpen(prev => {
-      const newState = !prev;
-      console.log(`EduBot is now ${newState ? 'opened' : 'closed'}`);
-      return newState;
-    });
-    if (platformChatOpen) {
-      console.log("Closing PlatformChat as EduBot is opened.");
-      setPlatformChatOpen(false);  // Close PlatformChat if it's open
-    }
+    setChatbotOpen(prev => !prev);
+    if (platformChatOpen) setPlatformChatOpen(false);
   };
-
-  // Close the EduBot manually
-  const closeEduBot = () => {
-    console.log("Manually closing EduBot...");
-    setChatbotOpen(false); // Ensure it triggers re-render
-  };
+  const closeEduBot = () => setChatbotOpen(false);
 
   return (
-    <>
-          <QueryClientProvider client={queryClient}>
-
+    <QueryClientProvider client={queryClient}>
       <Navbar />
 
-      {/* Container with sidebar and main content */}
       <div className="flex min-h-screen">
         {showSidebar && (
           <aside className="w-64 border-r border-gray-200">
             <SidebarContent />
           </aside>
         )}
-        <main className={`flex-1 p-4`}>
+
+        <main className="flex-1 p-4">
           <Routes>
-            <Route path="/role-check" element={<AuthRedirector />} />
+            {/* Unauthorized fallback */}
+            <Route path="/unauthorized" element={<Unauthorized />} />
+
+            {/* PUBLIC (no login required) */}
             <Route path="/" element={<Landing />} />
-            <Route path="/teacher-dashboard" element={<Test />} />
-            <Route path="/live" element={<VideoApp />} />
-            <Route path="/Login" element={<Login />} />
-            <Route path="/courses/enroll" element={<CourseEnroll />} />
             <Route path="/courses" element={<CourseDisplay />} />
-            <Route path="/payment" element={<Payment1 />} />
-            <Route path="/prog" element={<Learning1 />} />
-            <Route path="/student-dashboard" element={<Learning1 />} />
-            <Route path="/quiz" element={<Quiz1 />} />
-            <Route path="/quiz-ai" element={<Gen1 />} />
-            <Route path="/session" element={<Session1 />} />
+            <Route path="/paths" element={<Path />} />
+            <Route path="/sessions" element={<Allsessions />} />
+
+            {/* Auth pages */}
+            <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/role-selection" element={<RoleSelection />} />
-            <Route path="/course-content" element={<CourseContent />} />
-            <Route path="/checkout" element={<PaymentPage />} />
-            <Route path="/sessions" element={<Allsessions />} />
-            <Route path="/sessionenroll" element={<SesEnrollment />} />
-            <Route path="/paths" element={<Path />} />
-            <Route path="/chatbot" element={<Chatbot />} />
-            <Route path="/interview" element={<Interview />} />
-            <Route path="/study" element={<Study />} />
-            <Route path="/exam" element={<Exam />} />
-            <Route path="/admin/users" element={<UsersPage />} />
-            <Route path="/admincourse" element={<CoursesTable />} />
-            <Route path="/admin-dashboard" element={<AnalyticsPage />} />
+            <Route path="/role-check" element={<AuthRedirector />} />
 
-            <Route path="/studio" element={<Studio />} />
-            <Route path="/settings" element={<CustomSettings />} />
-            <Route path="/help" element={<Help />} />
-            <Route path="/note-taking" element={<NoteTaking
-              isOpen={noteOpen}
-              setIsOpen={setNoteOpen}
-              contentState={contentState}
-              setContentState={setContentState}
-            />} />
-            <Route path="/aiprediction" element={<Aiprediction />} />
+            {/* PROTECTED (login + role checks) */}
 
+            {/* Admin-only */}
+            <Route
+              path="/admin-dashboard"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AnalyticsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <UsersPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admincourse"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <CoursesTable />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Teacher-only */}
+            <Route
+              path="/teacher-dashboard"
+              element={
+                <ProtectedRoute allowedRoles={['teacher']}>
+                  <Test />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Student-only */}
+            <Route
+              path="/student-dashboard"
+              element={
+                <ProtectedRoute allowedRoles={['student']}>
+                  <Learning1 />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Mixed-access */}
+            <Route
+              path="/live"
+              element={
+                <ProtectedRoute allowedRoles={['student', 'teacher']}>
+                  <VideoApp />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/courses/enroll"
+              element={
+                <ProtectedRoute allowedRoles={['teacher','student']}>
+                  <CourseEnroll />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payment"
+              element={
+                <ProtectedRoute allowedRoles={['student','teacher', 'admin']}>
+                  <Payment1 />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/prog"
+              element={
+                <ProtectedRoute allowedRoles={['student']}>
+                  <Learning1 />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/quiz"
+              element={
+                <ProtectedRoute allowedRoles={['student', 'teacher']}>
+                  <Quiz1 />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/quiz-ai"
+              element={
+                <ProtectedRoute allowedRoles={['student', 'teacher']}>
+                  <Gen1 />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/session"
+              element={
+                <ProtectedRoute allowedRoles={['teacher', 'student']}>
+                  <Session1 />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/checkout"
+              element={
+                <ProtectedRoute allowedRoles={['student']}>
+                  <PaymentPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sessionenroll"
+              element={
+                <ProtectedRoute allowedRoles={['student']}>
+                  <SesEnrollment />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/chatbot"
+              element={
+                <ProtectedRoute allowedRoles={['student', 'teacher', 'admin']}>
+                  <Chatbot />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/interview"
+              element={
+                <ProtectedRoute allowedRoles={['student', 'teacher']}>
+                  <Interview />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/study"
+              element={
+                <ProtectedRoute allowedRoles={['student', 'teacher']}>
+                  <Study />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/exam"
+              element={
+                <ProtectedRoute allowedRoles={['student', 'teacher']}>
+                  <Exam />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/course-content"
+              element={
+                <ProtectedRoute allowedRoles={['student', 'teacher']}>
+                  <CourseContent />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/studio"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'teacher']}>
+                  <Studio />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'teacher', 'student']}>
+                  <CustomSettings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/help"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'teacher', 'student']}>
+                  <Help />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/note-taking"
+              element={
+                <ProtectedRoute allowedRoles={['student', 'teacher']}>
+                  <NoteTaking
+                    isOpen={noteOpen}
+                    setIsOpen={setNoteOpen}
+                    contentState={contentState}
+                    setContentState={setContentState}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/aiprediction"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'teacher']}>
+                  <Aiprediction />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Catch‑all: everything else → unauthorized */}
+            <Route path="*" element={<Navigate to="/unauthorized" replace />} />
           </Routes>
         </main>
       </div>
-      {location.pathname === '/course-content' && (
+
+      {/* Floating note button */}
+      {showFloatingChatbot && (
         <div className="fixed bottom-40 right-5 z-50">
           <button
             onClick={() => setNoteOpen(true)}
@@ -186,7 +365,7 @@ function AppContent() {
         setContentState={setContentState}
       />
 
-      {/* Separate div for EduBot (floating chatbot) on /course-content */}
+      {/* EduBot */}
       {showFloatingChatbot && chatbotOpen && (
         <div className="fixed bottom-20 right-4 z-50">
           <div className="w-[400px] h-[600px] bg-white border border-gray-300 rounded-t-lg shadow-xl flex flex-col">
@@ -202,9 +381,8 @@ function AppContent() {
           </div>
         </div>
       )}
-  
-        {/* EduBot Icon to toggle */}
-      {/* Separate div for PlatformChat (floating platform chat) */}
+
+      {/* PlatformChat toggle & panel */}
       <div className="fixed bottom-2 right-4 z-50">
         <button
           onClick={togglePlatformChat}
@@ -213,7 +391,6 @@ function AppContent() {
           <MessageSquare className="h-8 w-8 text-white" />
         </button>
       </div>
-
       {platformChatOpen && (
         <div className="fixed bottom-20 right-4 z-50">
           <div className="w-[400px] h-[600px] bg-white border border-gray-300 rounded-t-lg shadow-xl flex flex-col">
@@ -230,7 +407,7 @@ function AppContent() {
         </div>
       )}
 
-      {/* EduBot Icon to toggle */}
+      {/* EduBot toggle icon */}
       {showFloatingChatbot && (
         <div className="fixed bottom-20 right-4 z-50">
           <button
@@ -241,19 +418,16 @@ function AppContent() {
           </button>
         </div>
       )}
-            </QueryClientProvider>
-
-    </>
+    </QueryClientProvider>
   );
 }
 
 export default function App() {
   return (
     <Elements stripe={stripePromise}>
-            <Toaster />
-
+      <Toaster />
       <Router>
-        <AppContent/>
+        <AppContent />
       </Router>
     </Elements>
   );
