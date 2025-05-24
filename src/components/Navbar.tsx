@@ -163,7 +163,7 @@ const  navigate = useNavigate();
                 <div className="mr-8 hidden md:flex">
                   <a href="/" className="flex items-center space-x-2">
                     <Sparkles className="h-6 w-6 text-primary" />
-                    <span className="font-bold text-xl">LearnHub</span>
+                    <span className="font-bold text-xl">EduNova.tn</span>
                   </a>
                 </div>
                 <NavigationMenu className="hidden md:flex">

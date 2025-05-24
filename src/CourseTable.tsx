@@ -1,18 +1,20 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+"use client"
+
+import { useState, useEffect, useMemo } from "react"
+import { useAuth } from "@clerk/clerk-react"
 import {
   useReactTable,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
-  ColumnDef,
+  type ColumnDef,
   flexRender,
-  SortingState,
-  ColumnFiltersState,
-  PaginationState,
-} from '@tanstack/react-table';
-import { format } from 'date-fns';
+  type SortingState,
+  type ColumnFiltersState,
+  type PaginationState,
+} from "@tanstack/react-table"
+import { format } from "date-fns"
 import {
   ChevronDown,
   ChevronUp,
@@ -21,7 +23,6 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Search,
-  Star,
   BookOpen,
   DollarSign,
   Calendar,
@@ -29,135 +30,142 @@ import {
   Trash2,
   Edit,
   Eye,
-} from 'lucide-react';
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { cn } from '@/lib/utils';
-import CreateCourseDialog from './components/create';
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { cn } from "@/lib/utils"
+import CreateCourseDialog from "./components/create"
 
 interface Instructor {
-  _id: string;
-  name: string;
+  _id: string
+  name: string
 }
 
 interface Course {
-  _id: string;
-  title: string;
-  description: string;
-  instructor: Instructor | null;  // <-- can be null if something went wrong
-  image: string;
-  category: string;
-  price: number;
-  rating: number;
+  _id: string
+  title: string
+  description: string
+  instructor: Instructor | null // <-- can be null if something went wrong
+  image: string
+  category: string
+  price: number
+  rating: number
   lessons: Array<{
-    _id: string;
-    title: string;
-    description: string;
-    duration: string;
-    videoUrl: string;
-  }>;
-  createdAt: string;
+    _id: string
+    title: string
+    description: string
+    duration: string
+    videoUrl: string
+  }>
+  createdAt: string
 }
 
 export default function CoursesTable() {
-  const { getToken, userId } = useAuth();
-  const [data, setData] = useState<Course[]>([]);
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [globalFilter, setGlobalFilter] = useState('');
-  const [loading, setLoading] = useState(true);
-  
+  const { getToken, userId } = useAuth()
+  const [data, setData] = useState<Course[]>([])
+  const [sorting, setSorting] = useState<SortingState>([])
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const [globalFilter, setGlobalFilter] = useState("")
+  const [loading, setLoading] = useState(true)
+
   // Pagination state
   const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
-  });
+  })
 
   // Modal states
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isLessonsModalOpen, setIsLessonsModalOpen] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  const [editFormData, setEditFormData] = useState<Partial<Course>>({});
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isLessonsModalOpen, setIsLessonsModalOpen] = useState(false)
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
+  const [editFormData, setEditFormData] = useState<Partial<Course>>({})
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  // Add a new state to track the selected lesson
+  const [selectedLesson, setSelectedLesson] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchCourses();
-  }, []);
+    fetchCourses()
+  }, [])
 
   const fetchCourses = async () => {
     try {
-      const token = await getToken();
-      const response = await fetch('http://localhost:5000/api/courses/instructor-courses', {
+      const token = await getToken()
+      const response = await fetch("http://localhost:5000/api/courses/instructor-courses", {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'x-clerk-user-id': userId || ''
-        }
-      });
-      const coursesData = await response.json();
-      setData(coursesData);
-      setLoading(false);
+          Authorization: `Bearer ${token}`,
+          "x-clerk-user-id": userId || "",
+        },
+      })
+      const coursesData = await response.json()
+      setData(coursesData)
+      setLoading(false)
     } catch (error) {
-      console.error('Error fetching courses:', error);
-      setLoading(false);
+      console.error("Error fetching courses:", error)
+      setLoading(false)
     }
-  };
+  }
 
   const handleDelete = async (courseId: string) => {
     try {
-      const token = await getToken();
+      const token = await getToken()
       await fetch(`http://localhost:5000/api/courses/${courseId}`, {
-        method: 'DELETE',
+        method: "DELETE",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'x-clerk-user-id': userId || ''
-        }
-      });
-      setData(data.filter(course => course._id !== courseId));
-      setIsDeleteModalOpen(false);
+          Authorization: `Bearer ${token}`,
+          "x-clerk-user-id": userId || "",
+        },
+      })
+      setData(data.filter((course) => course._id !== courseId))
+      setIsDeleteModalOpen(false)
     } catch (error) {
-      console.error('Error deleting course:', error);
+      console.error("Error deleting course:", error)
     }
-  };
+  }
 
   const handleEdit = async () => {
-    if (!selectedCourse?._id || !editFormData) return;
+    if (!selectedCourse?._id || !editFormData) return
 
     try {
-      const token = await getToken();
-      const formData = new FormData();
+      const token = await getToken()
+      const formData = new FormData()
       Object.entries(editFormData).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          formData.append(key, value.toString());
+          formData.append(key, value.toString())
         }
-      });
+      })
 
       const response = await fetch(`http://localhost:5000/api/courses/${selectedCourse._id}`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'x-clerk-user-id': userId || ''
+          Authorization: `Bearer ${token}`,
+          "x-clerk-user-id": userId || "",
         },
-        body: formData
-      });
+        body: formData,
+      })
 
-      const updatedCourse = await response.json();
-      setData(data.map(course => 
-        course._id === selectedCourse._id ? updatedCourse : course
-      ));
-      setIsEditModalOpen(false);
+      const updatedCourse = await response.json()
+      setData(data.map((course) => (course._id === selectedCourse._id ? updatedCourse : course)))
+      setIsEditModalOpen(false)
     } catch (error) {
-      console.error('Error updating course:', error);
+      console.error("Error updating course:", error)
     }
-  };
+  }
 
   const columns = useMemo<ColumnDef<Course>[]>(
     () => [
       {
-        accessorKey: 'image',
-        header: 'Course',
+        accessorKey: "image",
+        header: "Course",
         cell: ({ row }) => (
           <div className="flex items-center space-x-3">
             <img
@@ -165,37 +173,36 @@ export default function CoursesTable() {
               alt={row.original.title}
               className="w-12 h-12 rounded-lg object-cover"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=100&h=100&fit=crop';
+                ;(e.target as HTMLImageElement).src =
+                  "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=100&h=100&fit=crop"
               }}
             />
             <div>
               <div className="font-medium">{row.original.title}</div>
-              <div className="text-sm text-gray-500 truncate max-w-xs">
-                {row.original.description}
-              </div>
+              <div className="text-sm text-gray-500 truncate max-w-xs">{row.original.description}</div>
             </div>
           </div>
         ),
       },
       {
-        accessorKey: 'instructor',
-        header: 'Instructor',
+        accessorKey: "instructor",
+        header: "Instructor",
         cell: ({ row }) => {
-          const instr = row.original.instructor;
+          const instr = row.original.instructor
           // if instr is null or missing, show a dash; otherwise use instr.name
-          const label = instr?.name ?? '–';
+          const label = instr?.name ?? "–"
           return (
             <div className="flex items-center space-x-2">
               <User className="w-4 h-4 text-gray-500" />
               <span>{label}</span>
             </div>
-          );
+          )
         },
       },
-      
+
       {
-        accessorKey: 'category',
-        header: 'Category',
+        accessorKey: "category",
+        header: "Category",
         cell: ({ row }) => (
           <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
             {row.original.category}
@@ -203,8 +210,8 @@ export default function CoursesTable() {
         ),
       },
       {
-        accessorKey: 'price',
-        header: 'Price',
+        accessorKey: "price",
+        header: "Price",
         cell: ({ row }) => (
           <div className="flex items-center space-x-1">
             <DollarSign className="w-4 h-4 text-gray-500" />
@@ -227,10 +234,10 @@ export default function CoursesTable() {
       //     );
       //   },
       // },
-      
+
       {
-        accessorKey: 'lessons',
-        header: 'Lessons',
+        accessorKey: "lessons",
+        header: "Lessons",
         cell: ({ row }) => (
           <div className="flex items-center space-x-1">
             <BookOpen className="w-4 h-4 text-gray-500" />
@@ -239,32 +246,32 @@ export default function CoursesTable() {
         ),
       },
       {
-        accessorKey: 'createdAt',
-        header: 'Created',
+        accessorKey: "createdAt",
+        header: "Created",
         cell: ({ row }) => (
           <div className="flex items-center space-x-1">
             <Calendar className="w-4 h-4 text-gray-500" />
-            <span>{format(new Date(row.original.createdAt), 'MMM d, yyyy')}</span>
+            <span>{format(new Date(row.original.createdAt), "MMM d, yyyy")}</span>
           </div>
         ),
       },
       {
-        id: 'actions',
-        header: 'Actions',
+        id: "actions",
+        header: "Actions",
         cell: ({ row }) => (
           <div className="flex items-center space-x-2">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => {
-                setSelectedCourse(row.original);
+                setSelectedCourse(row.original)
                 setEditFormData({
                   title: row.original.title,
                   description: row.original.description,
                   category: row.original.category,
                   price: row.original.price,
-                });
-                setIsEditModalOpen(true);
+                })
+                setIsEditModalOpen(true)
               }}
             >
               <Edit className="w-4 h-4" />
@@ -273,8 +280,8 @@ export default function CoursesTable() {
               variant="ghost"
               size="icon"
               onClick={() => {
-                setSelectedCourse(row.original);
-                setIsLessonsModalOpen(true);
+                setSelectedCourse(row.original)
+                setIsLessonsModalOpen(true)
               }}
             >
               <Eye className="w-4 h-4" />
@@ -283,8 +290,8 @@ export default function CoursesTable() {
               variant="ghost"
               size="icon"
               onClick={() => {
-                setSelectedCourse(row.original);
-                setIsDeleteModalOpen(true);
+                setSelectedCourse(row.original)
+                setIsDeleteModalOpen(true)
               }}
             >
               <Trash2 className="w-4 h-4 text-red-500" />
@@ -293,8 +300,8 @@ export default function CoursesTable() {
         ),
       },
     ],
-    []
-  );
+    [],
+  )
 
   const table = useReactTable({
     data,
@@ -318,14 +325,14 @@ export default function CoursesTable() {
     getSortedRowModel: getSortedRowModel(),
     manualPagination: false,
     pageCount: Math.ceil(data.length / pageSize),
-  });
+  })
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
-    );
+    )
   }
 
   return (
@@ -346,15 +353,15 @@ export default function CoursesTable() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
                   type="text"
-                  value={globalFilter ?? ''}
+                  value={globalFilter ?? ""}
                   onChange={(e) => setGlobalFilter(e.target.value)}
                   placeholder="Search courses..."
                   className="pl-9 pr-4 py-2 w-full sm:w-64 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               <select
-                value={(table.getColumn('category')?.getFilterValue() as string) ?? ''}
-                onChange={(e) => table.getColumn('category')?.setFilterValue(e.target.value)}
+                value={(table.getColumn("category")?.getFilterValue() as string) ?? ""}
+                onChange={(e) => table.getColumn("category")?.setFilterValue(e.target.value)}
                 className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">All Categories</option>
@@ -380,8 +387,8 @@ export default function CoursesTable() {
                         {header.isPlaceholder ? null : (
                           <div
                             className={cn(
-                              'flex items-center space-x-1',
-                              header.column.getCanSort() && 'cursor-pointer select-none'
+                              "flex items-center space-x-1",
+                              header.column.getCanSort() && "cursor-pointer select-none",
                             )}
                             onClick={header.column.getToggleSortingHandler()}
                           >
@@ -389,18 +396,14 @@ export default function CoursesTable() {
                             <span className="inline-flex flex-col">
                               <ChevronUp
                                 className={cn(
-                                  'w-3 h-3 -mb-1',
-                                  header.column.getIsSorted() === 'asc'
-                                    ? 'text-blue-600'
-                                    : 'text-gray-400'
+                                  "w-3 h-3 -mb-1",
+                                  header.column.getIsSorted() === "asc" ? "text-blue-600" : "text-gray-400",
                                 )}
                               />
                               <ChevronDown
                                 className={cn(
-                                  'w-3 h-3',
-                                  header.column.getIsSorted() === 'desc'
-                                    ? 'text-blue-600'
-                                    : 'text-gray-400'
+                                  "w-3 h-3",
+                                  header.column.getIsSorted() === "desc" ? "text-blue-600" : "text-gray-400",
                                 )}
                               />
                             </span>
@@ -431,7 +434,7 @@ export default function CoursesTable() {
                 <select
                   value={table.getState().pagination.pageSize}
                   onChange={(e) => {
-                    table.setPageSize(Number(e.target.value));
+                    table.setPageSize(Number(e.target.value))
                   }}
                   className="border border-gray-300 rounded px-2 py-1 text-sm"
                 >
@@ -442,8 +445,7 @@ export default function CoursesTable() {
                   ))}
                 </select>
                 <span className="text-sm text-gray-600">
-                  Page{' '}
-                  <span className="font-medium">{table.getState().pagination.pageIndex + 1}</span> of{' '}
+                  Page <span className="font-medium">{table.getState().pagination.pageIndex + 1}</span> of{" "}
                   <span className="font-medium">{table.getPageCount()}</span>
                 </span>
               </div>
@@ -498,7 +500,7 @@ export default function CoursesTable() {
               <Label htmlFor="title">Title</Label>
               <Input
                 id="title"
-                value={editFormData.title || ''}
+                value={editFormData.title || ""}
                 onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
               />
             </div>
@@ -506,7 +508,7 @@ export default function CoursesTable() {
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
-                value={editFormData.description || ''}
+                value={editFormData.description || ""}
                 onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
               />
             </div>
@@ -514,7 +516,7 @@ export default function CoursesTable() {
               <Label htmlFor="category">Category</Label>
               <Input
                 id="category"
-                value={editFormData.category || ''}
+                value={editFormData.category || ""}
                 onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
               />
             </div>
@@ -523,7 +525,7 @@ export default function CoursesTable() {
               <Input
                 id="price"
                 type="number"
-                value={editFormData.price || ''}
+                value={editFormData.price || ""}
                 onChange={(e) => setEditFormData({ ...editFormData, price: Number(e.target.value) })}
               />
             </div>
@@ -538,37 +540,49 @@ export default function CoursesTable() {
       </Dialog>
 
       {/* View Lessons Modal */}
-      <Dialog open={isLessonsModalOpen} onOpenChange={setIsLessonsModalOpen}>
+      <Dialog
+        open={isLessonsModalOpen}
+        onOpenChange={(open) => {
+          setIsLessonsModalOpen(open)
+          if (!open) setSelectedLesson(null) // Reset selected lesson when closing dialog
+        }}
+      >
         <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>Course Lessons</DialogTitle>
-            <DialogDescription>
-              View all lessons for {selectedCourse?.title}
-            </DialogDescription>
+            <DialogDescription>View all lessons for {selectedCourse?.title}</DialogDescription>
           </DialogHeader>
           <div className="mt-4 space-y-4">
             {selectedCourse?.lessons.map((lesson, index) => (
               <div
                 key={lesson._id}
-                className="p-4 border rounded-lg hover:bg-gray-50"
+                className={cn(
+                  "p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors",
+                  selectedLesson === lesson._id && "border-blue-500 bg-blue-50",
+                )}
+                onClick={() => setSelectedLesson(lesson._id)}
               >
                 <div className="flex items-center justify-between">
                   <h3 className="font-medium">
                     Lesson {index + 1}: {lesson.title}
                   </h3>
-                  <span className="text-sm text-gray-500">{lesson.duration}</span>
+                  <span className="text-sm text-gray-500">{lesson.duration} min</span>
                 </div>
-                <p className="mt-1 text-gray-600">{lesson.description}</p>
-                {lesson.videoUrl && (
-                  <a
-                    href={lesson.videoUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 text-blue-600 hover:text-blue-800 inline-flex items-center"
-                  >
-                    <BookOpen className="w-4 h-4 mr-1" />
-                    View Video
-                  </a>
+                <p className="mt-1 text-gray-600 text-sm">{lesson.description}</p>
+
+                {/* Show video only for the selected lesson */}
+                {selectedLesson === lesson._id && lesson.videoUrl && (
+                  <div className="mt-3">
+                    <div className="text-sm font-medium mb-2">Lesson Video:</div>
+                    <video
+                      src={`http://localhost:5000${lesson.videoUrl}`}
+                      controls
+                      className="w-full rounded-lg border"
+                      style={{ maxHeight: "300px" }}
+                    >
+                      Your browser does not support the video tag.
+                    </video>
+                  </div>
                 )}
               </div>
             ))}
@@ -592,15 +606,12 @@ export default function CoursesTable() {
             <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={() => selectedCourse && handleDelete(selectedCourse._id)}
-            >
+            <Button variant="destructive" onClick={() => selectedCourse && handleDelete(selectedCourse._id)}>
               Delete
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
-  );
+  )
 }

@@ -144,8 +144,8 @@ function AicourseGenerator() {
           <div className="flex items-center space-x-3">
             <Brain className="w-12 h-12 text-primary" />
             <div>
-              <h1 className="text-4xl font-bold">AI Course Generator</h1>
-              <p className="text-muted-foreground">Create comprehensive courses with practical examples</p>
+              <h1 className="text-4xl font-bold">AI Course-Lesson Generator</h1>
+              <p className="text-muted-foreground">Create comprehensive Lessons with practical examples</p>
             </div>
           </div>
           <Bot className="w-8 h-8 text-primary/60" />
@@ -155,12 +155,12 @@ function AicourseGenerator() {
           <Card className="p-6">
             <div className="flex items-center gap-2 mb-6">
               <BookOpen className="w-5 h-5 text-primary" />
-              <h2 className="text-2xl font-semibold">Course Parameters</h2>
+              <h2 className="text-2xl font-semibold">Lesson Parameters</h2>
             </div>
             
             <div className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="title">Course Title</Label>
+                <Label htmlFor="title">Lesson Title</Label>
                 <Input
                   id="title"
                   value={title}

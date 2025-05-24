@@ -14,6 +14,8 @@ import {
 } from '@/components/ui/dialog';
 import { Pencil, Trash2, PlusCircle, BookOpen, GraduationCap, ClipboardList, Code } from 'lucide-react';
 import { useUser } from '@clerk/clerk-react';
+import { useToast } from '@/hooks/use-toast';
+import { Toaster } from '@/components/ui/toaster';
 
 // -------------------- Utility Types --------------------
 export type Course = {
@@ -274,6 +276,8 @@ const QuizManager = ({
   const [questionToEdit, setQuestionToEdit] = useState<{ index: number; data: QuizQuestion } | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
+  const { toast } = useToast();
+
 
   useEffect(() => {
     setQuestions(lesson.quiz?.questions || []);
@@ -303,14 +307,24 @@ const QuizManager = ({
     })
       .then((res) => res.json())
       .then(() => {
-        alert('Quiz updated successfully.');
+        toast({
+          title: 'Quiz Updated',
+          description: 'Your quiz has been successfully Added.',
+          variant: 'success',  // Success variant
+        });
         refreshLesson();
       })
       .catch((err) => {
         console.error('Error updating quiz:', err);
+        toast({
+          title: 'Error',
+          description: err.message || 'Something went wrong.',
+          variant: 'destructive',  // Error variant
+        });
         setError(err.message);
       });
   };
+  
 
   const addQuestionHandler = () => {
     if (!newQuestion.question.trim() || newQuestion.options.length < 2) {
@@ -463,141 +477,322 @@ const QuizManager = ({
 };
 
 // -------------------- Assignment Manager --------------------
-const AssignmentManager = ({
-  courseId,
-  lesson,
-  refreshLesson,
-  authHeaders,
-}: {
-  courseId: string;
-  lesson: Lesson;
-  refreshLesson: () => void;
-  authHeaders: Record<string, string>;
-}) => {
+export const AssignmentManager = ({ courseId, lesson, refreshLesson, authHeaders }) => {
+  const [assignments, setAssignments] = useState(lesson.assignments || []);
+  const [dialogOpen, setDialogOpen] = useState(false);  // Controls visibility of the Add Assignment form
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [assignmentToEdit, setAssignmentToEdit] = useState(null);
+  const [error, setError] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [assignmentToDelete, setAssignmentToDelete] = useState(null);
+  const { toast } = useToast();
 
-  const handleAssignmentSubmit = (fd: FormData) => {
-    fetch(`http://localhost:5000/api/courses/${courseId}/lessons/${lesson._id}/assignment`, {
-      method: 'POST',
-      headers: { ...authHeaders },
-      body: fd,
-    })
+  useEffect(() => {
+    setAssignments(lesson.assignments || []);
+  }, [lesson.assignments]);
+
+  const handleSave = (toSend) => {
+    fetch(
+      `http://localhost:5000/api/courses/${courseId}/lessons/${lesson._id}/assignments`,
+      {
+        method: 'POST',
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify(toSend),
+      }
+    )
       .then((res) => res.json())
       .then(() => {
-        alert('Assignment updated successfully');
+        toast({
+          title: 'Assignment Created',
+          description: 'Your assignment was successfully created.',
+          variant: 'success',  // Success variant
+        });
+        setError(null);
+        setDialogOpen(false);
         refreshLesson();
-        setEditDialogOpen(false);
       })
       .catch((err) => {
-        console.error('Error updating assignment:', err);
+        console.error('Error uploading assignments:', err);
+        toast({
+          title: 'Error',
+          description: err.message || 'Something went wrong.',
+          variant: 'destructive',  // Error variant
+        });
         setError(err.message);
       });
   };
 
-  const deleteAssignment = () => {
-    fetch(`http://localhost:5000/api/courses/${courseId}/lessons/${lesson._id}/assignment`, {
-      method: 'DELETE',
-      headers: { ...authHeaders },
-    })
+  const handleUpdate = (updatedAssignment) => {
+    fetch(
+      `http://localhost:5000/api/courses/${courseId}/lessons/${lesson._id}/assignments/${updatedAssignment._id}`,
+      {
+        method: 'PUT',
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedAssignment),
+      }
+    )
       .then((res) => res.json())
       .then(() => {
-        alert('Assignment deleted successfully');
+        toast({
+          title: 'Assignment Updated',
+          description: 'Your assignment was successfully updated.',
+          variant: 'success',  // Success variant
+        });
+        setEditDialogOpen(false);
         refreshLesson();
       })
-      .catch((err) => console.error('Error deleting assignment:', err));
+      .catch((err) => {
+        console.error('Error updating assignment:', err);
+        toast({
+          title: 'Error',
+          description: err.message || 'Something went wrong.',
+          variant: 'destructive',  // Error variant
+        });
+        setError(err.message);
+      });
+  };
+
+  const handleDelete = () => {
+    if (assignmentToDelete) {
+      fetch(
+        `http://localhost:5000/api/courses/${courseId}/lessons/${lesson._id}/assignments/${assignmentToDelete._id}`,
+        {
+          method: 'DELETE',
+          headers: { ...authHeaders },
+        }
+      )
+        .then((res) => res.json())
+        .then(() => {
+          toast({
+            title: 'Assignment Deleted',
+            description: 'The assignment has been successfully deleted.',
+            variant: 'success',  // Success variant
+          });
+          setDeleteDialogOpen(false);
+          refreshLesson();
+        })
+        .catch((err) => {
+          console.error('Error deleting assignment:', err);
+          toast({
+            title: 'Error',
+            description: err.message || 'Something went wrong.',
+            variant: 'destructive',  // Error variant
+          });
+          setError(err.message);
+        });
+    }
   };
 
   return (
     <div>
-      <h3 className="text-xl font-semibold mb-4">Assignment Manager</h3>
-      {lesson.assignment ? (
-        <div className="border p-4 rounded mb-4 shadow-sm bg-white">
-          <p className="font-medium text-lg">Title: {lesson.assignment.title}</p>
-          <a
-            href={`http://localhost:5000${lesson.assignment.file}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 underline mt-2 block"
-          >
-            View Assignment
-          </a>
-          <div className="mt-4 flex gap-4">
-            <Button variant="outline" onClick={() => setEditDialogOpen(true)}>
-              <Pencil className="w-5 h-5 mr-1" />
-              Edit Assignment
-            </Button>
-            <Button variant="destructive" onClick={deleteAssignment}>
-              <Trash2 className="w-5 h-5 mr-1" />
-              Delete Assignment
-            </Button>
-          </div>
+      <h3 className="text-xl font-semibold mb-4">Assignments</h3>
+
+      {/* Show the list of assignments only when dialogOpen is false */}
+      {!dialogOpen && assignments.length > 0 && (
+        <div className="space-y-4">
+          {assignments.map((a) => (
+            <div key={a._id} className="border p-4 rounded shadow-sm bg-white flex justify-between items-center">
+              <div>
+                <p className="font-medium">{a.title}</p>
+                <p className="mt-2 text-sm text-gray-700 whitespace-pre-wrap">{a.content}</p>
+                {a.solution && (
+                  <p className="mt-2 text-sm text-gray-600">Solution: {a.solution}</p>  
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={() => { setAssignmentToEdit(a); setEditDialogOpen(true); }}
+                >
+                  <Pencil className="w-5 h-5" />
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  size="icon" 
+                  onClick={() => { setAssignmentToDelete(a); setDeleteDialogOpen(true); }}
+                >
+                  <Trash2 className="w-5 h-5" />
+                </Button>
+              </div>
+            </div>
+          ))}
         </div>
-      ) : (
-        <Button onClick={() => setEditDialogOpen(true)}>Add Assignment</Button>
       )}
-      {editDialogOpen && (
-        <Dialog open onOpenChange={() => setEditDialogOpen(false)}>
-          <DialogContent className="max-w-md">
+
+      {/* Show the "Add Assignment" button when dialogOpen is false */}
+      {!dialogOpen && (
+        <Button onClick={() => setDialogOpen(true)} className="mt-4 flex items-center gap-2">
+          <PlusCircle className="w-5 h-5" /> Add Assignments
+        </Button>
+      )}
+
+      {/* Add Assignment Form */}
+      {dialogOpen && (
+        <Dialog open onOpenChange={() => setDialogOpen(false)}>
+          <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>{lesson.assignment ? 'Edit Assignment' : 'Add Assignment'}</DialogTitle>
-              <DialogDescription>Provide a title and select a file.</DialogDescription>
+              <DialogTitle>Upload Assignments</DialogTitle>
+              <DialogDescription>Provide one or more assignments (title + content + solution) and submit.</DialogDescription>
             </DialogHeader>
-            <AssignmentForm
-              initialTitle={lesson.assignment?.title || ''}
-              onSubmit={(title, file) => {
-                const fd = new FormData();
-                fd.append('title', title);
-                if (file) fd.append('assignment', file);
-                handleAssignmentSubmit(fd);
-              }}
-              onCancel={() => setEditDialogOpen(false)}
+            <MultiAssignmentForm
+              initial={[]}  // No initial assignments, as we are adding new ones
+              onSubmit={handleSave}
+              onCancel={() => setDialogOpen(false)}
             />
+            {error && <p className="text-red-500 mt-2">{error}</p>}
           </DialogContent>
         </Dialog>
       )}
-      {error && <p className="text-red-500">{error}</p>}
+
+      {/* Edit Assignment Dialog */}
+      {editDialogOpen && assignmentToEdit && (
+        <EditAssignmentDialog
+          open={editDialogOpen}
+          assignment={assignmentToEdit}
+          onSave={handleUpdate}
+          onCancel={() => setEditDialogOpen(false)}
+        />
+      )}
+
+      {/* Delete Assignment Confirmation */}
+      {deleteDialogOpen && (
+        <DeleteConfirmationDialog
+          open={deleteDialogOpen}
+          message="Are you sure you want to delete this assignment?"
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteDialogOpen(false)}
+        />
+      )}
     </div>
   );
 };
 
-const AssignmentForm = ({
-  initialTitle,
-  onSubmit,
-  onCancel,
-}: {
-  initialTitle: string;
-  onSubmit: (title: string, file: File | null) => void;
-  onCancel: () => void;
-}) => {
-  const [title, setTitle] = useState(initialTitle);
-  const [file, setFile] = useState<File | null>(null);
+const EditAssignmentDialog = ({ open, assignment, onSave, onCancel }) => {
+  const [editedAssignment, setEditedAssignment] = useState(assignment);
+
+  useEffect(() => {
+    setEditedAssignment(assignment);
+  }, [assignment]);
+
+  const handleChange = (field, value) => {
+    setEditedAssignment((prev) => ({ ...prev, [field]: value }));
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onCancel}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit Assignment</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <Input
+            type="text"
+            placeholder="Title"
+            value={editedAssignment.title}
+            onChange={(e) => handleChange('title', e.target.value)}
+            className="w-full"
+          />
+          <Textarea
+            placeholder="Content"
+            value={editedAssignment.content}
+            onChange={(e) => handleChange('content', e.target.value)}
+            className="w-full"
+            rows={4}
+          />
+          <Textarea
+            placeholder="Solution"
+            value={editedAssignment.solution}  // Bind solution field
+            onChange={(e) => handleChange('solution', e.target.value)}  // Handle solution changes
+            className="w-full"
+            rows={4}
+          />
+        </div>
+        <DialogFooter>
+          <Button onClick={() => onSave(editedAssignment)}>Save</Button>
+          <Button variant="outline" onClick={onCancel}>Cancel</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// -------------------- Multi Assignment Form --------------------
+const MultiAssignmentForm = ({ initial, onSubmit, onCancel }) => {
+  const [items, setItems] = useState(
+    initial.length > 0 ? initial.map(a => ({ title: a.title, content: a.content, solution: a.solution })) : [{ title: '', content: '', solution: '' }]
+  );
+
+  const updateField = (idx, field, value) => {
+    const copy = [...items];
+    copy[idx][field] = value;
+    setItems(copy);
+  };
+
+  const addItem = () => setItems([...items, { title: '', content: '', solution: '' }]);
+  const removeItem = (idx) => setItems(items.filter((_, i) => i !== idx));
+
+  const handleSubmit = () => {
+    // validate
+    for (const i of items) {
+      if (!i.title.trim() || !i.content.trim()) {
+        return;
+      }
+    }
+    // send as { assignments: [...] }
+    onSubmit({ assignments: items });
+  };
+
   return (
     <>
       <div className="space-y-4 py-4">
-        <Input
-          type="text"
-          placeholder="Assignment Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="border rounded w-full p-3 shadow-sm"
-        />
-        <Input
-          type="file"
-          onChange={(e) => setFile(e.target.files ? e.target.files[0] : null)}
-          accept=".pdf,.zip,.rar"
-          className="border rounded w-full p-3 shadow-sm"
-        />
+        {items.map((it, idx) => (
+          <div key={idx} className="border p-4 rounded bg-gray-50 relative">
+            <Input
+              type="text"
+              placeholder="Title"
+              value={it.title}
+              onChange={(e) => updateField(idx, 'title', e.target.value)}
+              className="mb-2 w-full"
+            />
+            <Textarea
+              placeholder="Content"
+              value={it.content}
+              onChange={(e) => updateField(idx, 'content', e.target.value)}
+              className="w-full"
+              rows={3}
+            />
+            <Textarea
+              placeholder="Solution"
+              value={it.solution}  // Bind solution field
+              onChange={(e) => updateField(idx, 'solution', e.target.value)}  // Handle solution changes
+              className="w-full"
+              rows={3}
+            />
+            {items.length > 1 && (
+              <Button
+                variant="destructive"
+                size="sm"
+                className="absolute top-2 right-2"
+                onClick={() => removeItem(idx)}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+        ))}
+        <Button variant="outline" onClick={addItem} className="flex items-center gap-2">
+          <PlusCircle className="w-4 h-4" /> Add Another Assignment
+        </Button>
       </div>
       <DialogFooter>
-        <Button onClick={() => onSubmit(title, file)}>Save</Button>
-        <Button variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
+        <Button onClick={handleSubmit}>Submit</Button>
+        <Button variant="outline" onClick={onCancel}>Cancel</Button>
       </DialogFooter>
     </>
   );
 };
+
 
 // -------------------- Code Example Manager --------------------
 const CodeExampleManager = ({
@@ -630,21 +825,50 @@ const CodeExampleManager = ({
       setError('Title, language, and code are required.');
       return;
     }
+
+    // Add new code example
     fetch(`http://localhost:5000/api/courses/${course._id}/codeExamples`, {
       method: 'POST',
-      headers: { ...authHeaders },
-      body: JSON.stringify(newExample),
+      headers: {
+        ...authHeaders,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(newExample), // Send the new code example data in the request body
     })
       .then((res) => res.json())
       .then((data) => {
-        setCodeExamples(data.codeExamples || []);
-        setNewExample({ title: '', description: '', language: '', code: '' });
-        setError(null);
-        refreshCourse();
+        setCodeExamples(data.codeExamples); // Update the code examples list after adding
+        setNewExample({ title: '', description: '', language: '', code: '' }); // Reset form
+        setError(null); // Clear any previous errors
+        refreshCourse(); // Refresh the course data
       })
       .catch((err) => {
         console.error('Error adding code example:', err);
-        setError(err.message);
+        setError(err.message); // Show error message if there's any
+      });
+  };
+
+  const openEdit = (example: CodeExample) => {
+    setExampleToEdit(example);
+    setEditDialogOpen(true); // Open the edit dialog
+  };
+
+  const handleEditSave = (edited: CodeExample) => {
+    fetch(`http://localhost:5000/api/courses/${course._id}/codeExamples/${edited._id}`, {
+      method: 'PUT',
+      headers: { ...authHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify(edited), // Send the edited code example data to the backend
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setCodeExamples(data.codeExamples); // Update the code examples list after editing
+        setEditDialogOpen(false); // Close the dialog
+        setExampleToEdit(null); // Clear the example being edited
+        refreshCourse(); // Refresh the course data
+      })
+      .catch((err) => {
+        console.error('Error updating code example:', err);
+        setError(err.message); // Show error message if there's any
       });
   };
 
@@ -655,31 +879,10 @@ const CodeExampleManager = ({
     })
       .then((res) => res.json())
       .then((data) => {
-        setCodeExamples(data.codeExamples || []);
-        refreshCourse();
+        setCodeExamples(data.codeExamples); // Update the code examples list after deletion
+        refreshCourse(); // Refresh the course data
       })
       .catch((err) => console.error('Error deleting code example:', err));
-  };
-
-  const openEdit = (example: CodeExample) => {
-    setExampleToEdit(example);
-    setEditDialogOpen(true);
-  };
-
-  const handleEditSave = (edited: CodeExample) => {
-    fetch(`http://localhost:5000/api/courses/${course._id}/codeExamples/${edited._id}`, {
-      method: 'PUT',
-      headers: { ...authHeaders },
-      body: JSON.stringify(edited),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setCodeExamples(data.codeExamples || []);
-        setEditDialogOpen(false);
-        setExampleToEdit(null);
-        refreshCourse();
-      })
-      .catch((err) => console.error('Error updating code example:', err));
   };
 
   return (
@@ -761,9 +964,7 @@ const CodeExampleManager = ({
                 type="text"
                 placeholder="Title"
                 value={exampleToEdit.title}
-                onChange={(e) =>
-                  setExampleToEdit({ ...exampleToEdit, title: e.target.value })
-                }
+                onChange={(e) => setExampleToEdit({ ...exampleToEdit, title: e.target.value })}
                 className="border rounded w-full p-3 shadow-sm"
               />
               <Textarea
@@ -794,9 +995,7 @@ const CodeExampleManager = ({
               />
             </div>
             <DialogFooter>
-              <Button onClick={() => exampleToEdit && handleEditSave(exampleToEdit)}>
-                Save
-              </Button>
+              <Button onClick={() => handleEditSave(exampleToEdit)}>Save</Button>
               <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
                 Cancel
               </Button>
@@ -807,6 +1006,7 @@ const CodeExampleManager = ({
     </div>
   );
 };
+
 
 // -------------------- Main Dashboard --------------------
 function Dashboard() {

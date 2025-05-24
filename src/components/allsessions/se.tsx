@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+"use client"
+
+import { useState, useEffect, useMemo } from "react"
 import {
   Search,
-  Filter,
   Calendar,
   Clock,
   Users,
@@ -13,26 +14,16 @@ import {
   SlidersHorizontal,
   BookOpen,
   Clock3,
-} from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+  Award,
+  Globe2,
+  Linkedin,
+} from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
 import {
   Sheet,
   SheetContent,
@@ -41,69 +32,63 @@ import {
   SheetTitle,
   SheetTrigger,
   SheetFooter,
-} from '@/components/ui/sheet';
-import { Slider } from '@/components/ui/slider';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
-import { useUser } from '@clerk/clerk-react';
-import { useNavigate } from 'react-router-dom';  // Import the useNavigate hook
-
+} from "@/components/ui/sheet"
+import { Slider } from "@/components/ui/slider"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useUser } from "@clerk/clerk-react"
+import { useNavigate } from "react-router-dom" // Import the useNavigate hook
 
 function Allsessions() {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   // Filter state variables
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedType, setSelectedType] = useState<string>("all");
-  const [priceRange, setPriceRange] = useState<number[]>([0, 100]);
-  const [selectedSubject, setSelectedSubject] = useState<string>("all");
-  const [selectedLevel, setSelectedLevel] = useState<string>("all");
-  const [selectedDuration, setSelectedDuration] = useState<string>("all");
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("")
+  const [selectedType, setSelectedType] = useState<string>("all")
+  const [priceRange, setPriceRange] = useState<number[]>([0, 100])
+  const [selectedSubject, setSelectedSubject] = useState<string>("all")
+  const [selectedLevel, setSelectedLevel] = useState<string>("all")
+  const [selectedDuration, setSelectedDuration] = useState<string>("all")
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
 
   // Sessions state (fetched from backend)
-  const [sessions, setSessions] = useState<any[]>([]);
-  const { user } = useUser();
-  const handleBookSession = (session:any) => {
-    console.log('Navigating with session:', session);
-    navigate('/sessionenroll', { state: { session } });
-  };
+  const [sessions, setSessions] = useState<any[]>([])
+  const { user } = useUser()
+  const handleBookSession = (session: any) => {
+    console.log("Navigating with session:", session)
+    navigate("/sessionenroll", { state: { session } })
+  }
 
   // Build auth headers only when user is available.
   const authHeaders = useMemo(() => {
-    if (!user?.id) return {};
+    if (!user?.id) return {}
     return {
-      'Content-Type': 'application/json',
-      'x-clerk-user-id': user.id,
-    };
-  }, [user]);
+      "Content-Type": "application/json",
+      "x-clerk-user-id": user.id,
+    }
+  }, [user])
 
   // Fetch sessions from the admin endpoint
   const fetchSessions = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/sessions/admin', {
+      const response = await fetch("http://localhost:5000/api/sessions/admin", {
         headers: authHeaders,
-      });
+      })
       if (!response.ok) {
-        throw new Error('Failed to fetch sessions');
+        throw new Error("Failed to fetch sessions")
       }
-      const data = await response.json();
-      setSessions(data);
+      const data = await response.json()
+      setSessions(data)
     } catch (error) {
-      console.error("Error fetching sessions:", error);
+      console.error("Error fetching sessions:", error)
     }
-  };
+  }
 
   useEffect(() => {
     if (user?.id) {
-      fetchSessions();
+      fetchSessions()
     }
-  }, [user]);
+  }, [user])
 
   // Compute filtered sessions based on filter state values
   const filteredSessions = useMemo(() => {
@@ -111,38 +96,42 @@ function Allsessions() {
       // Search query filter (checks title and description)
       const queryMatch =
         session.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        session.description?.toLowerCase().includes(searchQuery.toLowerCase());
-      if (!queryMatch) return false;
+        session.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      if (!queryMatch) return false
 
       // Session type filter
       if (selectedType !== "all" && session.type?.toLowerCase() !== selectedType.toLowerCase()) {
-        return false;
+        return false
       }
 
       // Price range filter
-      const sessionPrice = Number(session.price) || 0;
-      if (sessionPrice < priceRange[0] || sessionPrice > priceRange[1]) return false;
+      const sessionPrice = Number(session.price) || 0
+      if (sessionPrice < priceRange[0] || sessionPrice > priceRange[1]) return false
 
       // Subject filter (if available)
-      if (selectedSubject !== "all" && session.subject && session.subject.toLowerCase() !== selectedSubject.toLowerCase()) {
-        return false;
+      if (
+        selectedSubject !== "all" &&
+        session.subject &&
+        session.subject.toLowerCase() !== selectedSubject.toLowerCase()
+      ) {
+        return false
       }
 
       // Level filter (if available)
       if (selectedLevel !== "all" && session.level && session.level.toLowerCase() !== selectedLevel.toLowerCase()) {
-        return false;
+        return false
       }
 
       // Duration filter (if available)
       if (selectedDuration !== "all" && session.duration) {
-        const duration = Number(session.duration);
-        if (selectedDuration === "60" && duration !== 60) return false;
-        if (selectedDuration === "90" && duration !== 90) return false;
-        if (selectedDuration === "120" && duration !== 120) return false;
+        const duration = Number(session.duration)
+        if (selectedDuration === "60" && duration !== 60) return false
+        if (selectedDuration === "90" && duration !== 90) return false
+        if (selectedDuration === "120" && duration !== 120) return false
       }
-      return true;
-    });
-  }, [sessions, searchQuery, selectedType, priceRange, selectedSubject, selectedLevel, selectedDuration]);
+      return true
+    })
+  }, [sessions, searchQuery, selectedType, priceRange, selectedSubject, selectedLevel, selectedDuration])
 
   return (
     <div className="mt-20 min-h-screen bg-gradient-to-br from-background via-background/95 to-secondary/10">
@@ -191,19 +180,17 @@ function Allsessions() {
                         variant="ghost"
                         size="sm"
                         onClick={() => {
-                          setSelectedType("all");
-                          setPriceRange([0, 100]);
-                          setSelectedSubject("all");
-                          setSelectedLevel("all");
-                          setSelectedDuration("all");
+                          setSelectedType("all")
+                          setPriceRange([0, 100])
+                          setSelectedSubject("all")
+                          setSelectedLevel("all")
+                          setSelectedDuration("all")
                         }}
                       >
                         Reset all
                       </Button>
                     </div>
-                    <SheetDescription>
-                      Customize your search with advanced filters
-                    </SheetDescription>
+                    <SheetDescription>Customize your search with advanced filters</SheetDescription>
                     <Separator />
                   </SheetHeader>
                   <div className="space-y-6 px-1 pb-8">
@@ -273,16 +260,10 @@ function Allsessions() {
                         Price Range
                       </h4>
                       <div className="px-2">
-                        <Slider
-                          value={priceRange}
-                          onValueChange={setPriceRange}
-                          max={100}
-                          step={5}
-                          className="mt-2"
-                        />
+                        <Slider value={priceRange} onValueChange={setPriceRange} max={100} step={5} className="mt-2" />
                         <div className="flex justify-between mt-2">
-                          <span className="text-sm font-medium">${priceRange[0]}</span>
-                          <span className="text-sm font-medium">${priceRange[1]}</span>
+                          <span className="text-sm font-medium">{priceRange[0]} TND</span>
+                          <span className="text-sm font-medium">{priceRange[1]} TND</span>
                         </div>
                       </div>
                     </div>
@@ -319,27 +300,29 @@ function Allsessions() {
           </div>
 
           {/* Sessions Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"  
-          >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredSessions.map((session) => (
-              <Card key={session._id} className="group relative flex flex-col overflow-hidden transition-all duration-300 hover:shadow-xl bg-background/50 backdrop-blur-sm border-primary/10">
+              <Card
+                key={session._id}
+                className="group relative flex flex-col overflow-hidden transition-all duration-300 hover:shadow-xl bg-background/50 backdrop-blur-sm border-primary/10"
+              >
                 <div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity" />
                 <CardHeader>
                   <div className="flex justify-between items-start mb-3">
                     <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20">
                       {session.level || "N/A"}
                     </Badge>
-                    <Badge variant={session.type === 'online' ? 'outline' : 'default'} className="ml-2">
-                      {session.type === 'online' ? <Laptop className="h-3 w-3 mr-1" /> : <MapPin className="h-3 w-3 mr-1" />}
+                    <Badge variant={session.type === "online" ? "outline" : "default"} className="ml-2">
+                      {session.type === "online" ? (
+                        <Laptop className="h-3 w-3 mr-1" />
+                      ) : (
+                        <MapPin className="h-3 w-3 mr-1" />
+                      )}
                       {session.type}
                     </Badge>
                   </div>
-                  <CardTitle className="text-xl group-hover:text-primary transition-colors">
-                    {session.title}
-                  </CardTitle>
-                  <CardDescription className="line-clamp-2 mt-2">
-                    {session.description}
-                  </CardDescription>
+                  <CardTitle className="text-xl group-hover:text-primary transition-colors">{session.title}</CardTitle>
+                  <CardDescription className="line-clamp-2 mt-2">{session.description}</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow">
                   <div className="space-y-4">
@@ -351,7 +334,9 @@ function Allsessions() {
                         </div>
                         <div className="flex items-center text-sm">
                           <Clock className="h-4 w-4 mr-2 text-primary" />
-                          <span>{session.time} ({session.duration}min)</span>
+                          <span>
+                            {session.time} ({session.duration}min)
+                          </span>
                         </div>
                       </div>
                       <div className="space-y-2">
@@ -360,49 +345,207 @@ function Allsessions() {
                           <span>{session.maxStudents} spots</span>
                         </div>
                         <div className="flex items-center text-sm">
-                          <Sparkles className="h-4 w-4 mr-2 text-yellow-500" />
-                          <span>{session.tutor?.rating || "N/A"} ({session.tutor?.reviews || 0} reviews)</span>
+                          <GraduationCap className="h-4 w-4 mr-2 text-primary" />
+                          <span>{session.level || "All Levels"}</span>
                         </div>
                       </div>
                     </div>
-                    <Separator className="bg-primary/10" />
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <img
-                          src={session.tutor?.image || 'https://via.placeholder.com/150'}
-                          alt={session.tutor?.name}
-                          className="h-8 w-8 rounded-full object-cover ring-2 ring-primary/20"
-                        />
-                        <span className="text-sm font-medium">{session.tutor?.name}</span>
+
+                    {/* Instructor Profile Section - Enhanced with all profile data */}
+                    <div className="mt-4 overflow-hidden rounded-lg border border-primary/10 group-hover:border-primary/30 transition-all duration-300">
+                      <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-3">
+                        <div className="flex items-center gap-3">
+                          <div className="relative">
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-white font-semibold shadow-lg transform transition-transform group-hover:scale-110">
+                              {session.tutor?.name?.[0] || "T"}
+                            </div>
+                            {session.tutor?.experienceYears > 0 && (
+                              <div className="absolute -bottom-1 -right-1 bg-background rounded-full px-1.5 py-0.5 border border-primary/20 text-[10px] font-medium">
+                                {session.tutor.experienceYears}y
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex flex-col">
+                              <div className="flex items-center justify-between">
+                                <h4 className="font-medium text-sm group-hover:text-primary transition-colors">
+                                  {session.tutor?.name}
+                                </h4>
+                                <div className="text-lg font-bold text-primary">
+                                  {session.price === 0 ? (
+                                    "Free"
+                                  ) : (
+                                    <>
+                                      {session.price} <span className="text-xs font-normal">TND</span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                              {session.tutor?.jobRole && (
+                                <p className="text-xs text-muted-foreground line-clamp-1">{session.tutor.jobRole}</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center text-lg font-semibold text-primary">
-                        <DollarSign className="h-4 w-4" />
-                        {session.price}
-                      </div>
+
+                      {/* Expertise Areas */}
+                      {session.tutor?.expertiseAreas && session.tutor.expertiseAreas.length > 0 && (
+                        <div className="px-3 py-2 bg-background/80 flex flex-wrap gap-1.5 items-center">
+                          <span className="text-xs text-muted-foreground mr-1">Expertise:</span>
+                          {session.tutor.expertiseAreas.slice(0, 3).map((area, idx) => (
+                            <Badge
+                              key={idx}
+                              variant="outline"
+                              className="text-xs bg-background hover:bg-primary/5 transition-colors"
+                            >
+                              {area}
+                            </Badge>
+                          ))}
+                          {session.tutor.expertiseAreas.length > 3 && (
+                            <Badge variant="outline" className="text-xs bg-primary/5">
+                              +{session.tutor.expertiseAreas.length - 3}
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Bio */}
+                      {session.tutor?.bio && (
+                        <div className="px-3 py-2 border-t border-primary/10">
+                          <p className="text-xs text-muted-foreground line-clamp-2">{session.tutor.bio}</p>
+                        </div>
+                      )}
+
+                      {/* Education */}
+                      {session.tutor?.education &&
+                        Array.isArray(session.tutor.education) &&
+                        session.tutor.education.length > 0 && (
+                          <div className="px-3 py-2 border-t border-primary/10">
+                            <div className="flex items-center gap-1.5">
+                              <GraduationCap className="h-3 w-3 text-primary" />
+                              <span className="text-xs font-medium">Education:</span>
+                            </div>
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              {session.tutor.education.slice(0, 1).map((edu, idx) => {
+                                try {
+                                  // Check if it's already an object or a JSON string
+                                  const education = typeof edu === "string" ? JSON.parse(edu) : edu
+                                  return (
+                                    <div key={idx} className="line-clamp-1">
+                                      {education.degree || ""}, {education.institution || ""}
+                                    </div>
+                                  )
+                                } catch (e) {
+                                  // If parsing fails, just display the string
+                                  return (
+                                    <div key={idx} className="line-clamp-1">
+                                      {typeof edu === "string" ? edu : "Education info"}
+                                    </div>
+                                  )
+                                }
+                              })}
+                              {session.tutor.education.length > 1 && (
+                                <div className="text-xs text-primary">+{session.tutor.education.length - 1} more</div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                      {/* Certifications */}
+                      {session.tutor?.certifications &&
+                        Array.isArray(session.tutor.certifications) &&
+                        session.tutor.certifications.length > 0 && (
+                          <div className="px-3 py-2 border-t border-primary/10">
+                            <div className="flex items-center gap-1.5">
+                              <Award className="h-3 w-3 text-primary" />
+                              <span className="text-xs font-medium">Certifications:</span>
+                            </div>
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              {session.tutor.certifications.slice(0, 1).map((cert, idx) => {
+                                try {
+                                  // Check if it's already an object or a JSON string
+                                  const certification = typeof cert === "string" ? JSON.parse(cert) : cert
+                                  return (
+                                    <div key={idx} className="line-clamp-1">
+                                      {certification.name || ""}, {certification.issuer || ""}
+                                    </div>
+                                  )
+                                } catch (e) {
+                                  // If parsing fails, just display the string
+                                  return (
+                                    <div key={idx} className="line-clamp-1">
+                                      {typeof cert === "string" ? cert : "Certification info"}
+                                    </div>
+                                  )
+                                }
+                              })}
+                              {session.tutor.certifications.length > 1 && (
+                                <div className="text-xs text-primary">
+                                  +{session.tutor.certifications.length - 1} more
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                      {/* Links */}
+                      {(session.tutor?.website || session.tutor?.linkedin) && (
+                        <div className="px-3 py-2 border-t border-primary/10 flex gap-2">
+                          {session.tutor?.website && session.tutor.website.trim() !== "" && (
+                            <a
+                              href={
+                                session.tutor.website.startsWith("http")
+                                  ? session.tutor.website
+                                  : `https://${session.tutor.website}`
+                              }
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs flex items-center gap-1 text-primary hover:text-primary/80 transition-colors"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Globe2 className="h-3 w-3" />
+                              Website
+                            </a>
+                          )}
+                          {session.tutor?.linkedin && session.tutor.linkedin.trim() !== "" && (
+                            <a
+                              href={
+                                session.tutor.linkedin.startsWith("http")
+                                  ? session.tutor.linkedin
+                                  : `https://${session.tutor.linkedin}`
+                              }
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs flex items-center gap-1 text-primary hover:text-primary/80 transition-colors"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Linkedin className="h-3 w-3" />
+                              LinkedIn
+                            </a>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>
                 <CardFooter>
-                <Button 
-  onClick={() => {
-    console.log('Button clicked');
-    console.log('Navigating with session:', session); 
-    
-    if (!session) {
-      console.error("No session data available.");
-      return;
-    }
-    
-    navigate('/sessionenroll', { state: { session } });
-  }}
-  style={{ position: 'relative', zIndex: 10 }} // Ensure it's not covered by other elements
->
-  Book Session
-</Button>
+                  <Button
+                    onClick={() => {
+                      console.log("Button clicked")
+                      console.log("Navigating with session:", session)
 
+                      if (!session) {
+                        console.error("No session data available.")
+                        return
+                      }
 
-            
-             
+                      navigate("/sessionenroll", { state: { session } })
+                    }}
+                    style={{ position: "relative", zIndex: 10 }} // Ensure it's not covered by other elements
+                  >
+                    Book Session
+                  </Button>
                 </CardFooter>
               </Card>
             ))}
@@ -410,7 +553,7 @@ function Allsessions() {
         </div>
       </div>
     </div>
-  );
+  )
 }
 
-export default Allsessions;
+export default Allsessions

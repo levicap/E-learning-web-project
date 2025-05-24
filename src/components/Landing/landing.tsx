@@ -293,7 +293,6 @@ export default function Landing() {
           </div>
         </div>
       </section>
-<Pricing/>
 <AISearch/>
       {/* CTA Section */}
       <section className="py-20 px-4 md:px-6 lg:px-8 bg-primary text-primary-foreground">

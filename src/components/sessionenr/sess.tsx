@@ -1,13 +1,15 @@
-import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+"use client"
+
+import { useState } from "react"
+import { useLocation, useNavigate } from "react-router-dom"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Separator } from "@/components/ui/separator"
+import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
-  Calendar as CalendarIcon,
+  CalendarIcon,
   Clock,
   MapPin,
   Users,
@@ -20,16 +22,25 @@ import {
   CheckCircle2,
   ArrowRight,
   Globe2,
-  Building2
-} from "lucide-react";
-import { format } from "date-fns";
-import { Calendar } from "@/components/ui/calendar";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+  Building2,
+} from "lucide-react"
+import { format } from "date-fns"
+import { Calendar } from "@/components/ui/calendar"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
+import { useUser } from "@clerk/clerk-react"
+import { useToast } from "@/hooks/use-toast"
 
 function SesEnrollment() {
   // Access the passed session data from navigation
-  const location = useLocation();
+  const location = useLocation()
   const sessionData = location.state?.session || {
     title: "Default Session Title",
     description: "Default session description.",
@@ -39,18 +50,75 @@ function SesEnrollment() {
     duration: 0,
     maxStudents: 0,
     price: 0,
-    tutor: { _id: "", name: "Default Tutor" }
-  };
+    tutor: { _id: "", name: "Default Tutor" },
+  }
 
   // Set the default selected date using the session data.
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date(sessionData.date));
-  const navigate = useNavigate();
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date(sessionData.date))
+  const navigate = useNavigate()
+  const { user } = useUser()
+  const { toast } = useToast()
+  const [isEnrolling, setIsEnrolling] = useState(false)
 
-  // Update handleEnroll to navigate to /payment and pass session data.
+  // Function to handle direct enrollment for free sessions
+  const handleDirectEnrollment = async () => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to enroll in this session.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsEnrolling(true)
+    try {
+      const response = await fetch("http://localhost:5000/api/students/sessions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-clerk-user-id": user.id,
+        },
+        body: JSON.stringify({ sessionId: sessionData._id }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        toast({
+          title: "Enrollment Successful",
+          description: "You have been enrolled in this session.",
+          variant: "default",
+        })
+        // You could navigate to a success page or dashboard here
+      } else {
+        toast({
+          title: "Enrollment Failed",
+          description: data.message || "Failed to enroll in this session.",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error enrolling in session:", error)
+      toast({
+        title: "Enrollment Failed",
+        description: "An error occurred while enrolling in this session.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsEnrolling(false)
+    }
+  }
+
+  // Update handleEnroll to check if session is free
   const handleEnroll = () => {
-    console.log("Proceeding to payment with session:", sessionData);
-    navigate("/payment", { state: { session: sessionData } });
-  };
+    if (sessionData.price === 0) {
+      handleDirectEnrollment()
+    } else {
+      console.log("Proceeding to payment with session:", sessionData)
+      navigate("/payment", { state: { session: sessionData } })
+    }
+  }
 
   return (
     <div className="mt-20 min-h-screen bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-100 via-blue-50 to-white dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-12 px-4 sm:px-6 lg:px-8">
@@ -61,23 +129,21 @@ function SesEnrollment() {
               <div className="space-y-2 slide-in">
                 <div className="flex items-center gap-2 mb-2">
                   <Sparkles className="w-6 h-6 text-yellow-400 animate-pulse-slow" />
-                  <CardTitle className="text-4xl font-bold gradient-text">
-                    {sessionData.title}
-                  </CardTitle>
+                  <CardTitle className="text-4xl font-bold gradient-text">{sessionData.title}</CardTitle>
                 </div>
                 <HoverCard>
                   <HoverCardTrigger asChild>
                     <Badge variant="secondary" className="text-lg cursor-pointer">
-                      {sessionData.type === 'online' ? (
+                      {sessionData.type === "online" ? (
                         <Globe2 className="w-4 h-4 mr-1 inline animate-float" />
                       ) : (
                         <Building2 className="w-4 h-4 mr-1 inline" />
                       )}
-                      {sessionData.type === 'online' ? 'Online Session' : 'In-person Session'}
+                      {sessionData.type === "online" ? "Online Session" : "In-person Session"}
                     </Badge>
                   </HoverCardTrigger>
                   <HoverCardContent>
-                    {sessionData.type === 'online'
+                    {sessionData.type === "online"
                       ? "Join from anywhere in the world! Virtual classroom link will be provided upon enrollment."
                       : "Physical classroom session with hands-on learning experience."}
                   </HoverCardContent>
@@ -154,7 +220,7 @@ function SesEnrollment() {
                       <div>
                         <p className="font-medium">Location</p>
                         <p className="text-sm text-muted-foreground">
-                          {sessionData.type === 'online' ? 'Virtual Classroom' : 'Campus Center'}
+                          {sessionData.type === "online" ? "Virtual Classroom" : "Campus Center"}
                         </p>
                       </div>
                     </div>
@@ -173,17 +239,23 @@ function SesEnrollment() {
                 <Star className="w-6 h-6 text-yellow-400/50 icon-spin" />
               </div>
               <div className="flex flex-col">
-                <span className="text-3xl font-bold gradient-text">${sessionData.price.toFixed(2)}</span>
+                <span className="text-3xl font-bold gradient-text">
+                  {sessionData.price === 0 ? "Free" : `$${sessionData.price.toFixed(2)}`}
+                </span>
                 <span className="text-sm text-muted-foreground">One-time payment</span>
               </div>
             </div>
 
             <Dialog>
               <DialogTrigger asChild>
-                <Button size="lg" className="px-8 bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500 transition-all duration-300 hover:scale-105">
+                <Button
+                  size="lg"
+                  className="px-8 bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500 transition-all duration-300 hover:scale-105"
+                  disabled={isEnrolling}
+                >
                   <span className="flex items-center gap-2">
-                    Enroll Now
-                    <ArrowRight className="w-5 h-5 animate-float" />
+                    {isEnrolling ? "Enrolling..." : "Enroll Now"}
+                    {!isEnrolling && <ArrowRight className="w-5 h-5 animate-float" />}
                   </span>
                 </Button>
               </DialogTrigger>
@@ -200,7 +272,7 @@ function SesEnrollment() {
                         <div className="space-y-2 text-sm">
                           <div className="flex items-center gap-2">
                             <CalendarIcon className="w-4 h-4 text-primary" />
-                            <span>{format(new Date(sessionData.date), 'MMMM d, yyyy')}</span>
+                            <span>{format(new Date(sessionData.date), "MMMM d, yyyy")}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Clock className="w-4 h-4 text-primary" />
@@ -208,7 +280,7 @@ function SesEnrollment() {
                           </div>
                           <div className="flex items-center gap-2">
                             <DollarSign className="w-4 h-4 text-primary" />
-                            <span>${sessionData.price.toFixed(2)}</span>
+                            <span>{sessionData.price === 0 ? "Free" : `$${sessionData.price.toFixed(2)}`}</span>
                           </div>
                         </div>
                       </div>
@@ -216,10 +288,14 @@ function SesEnrollment() {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="flex justify-end space-x-2 mt-4">
-                  <Button variant="outline" onClick={handleEnroll}>Cancel</Button>
-                  <Button onClick={handleEnroll} className="bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500">
+                  <Button variant="outline">Cancel</Button>
+                  <Button
+                    onClick={handleEnroll}
+                    className="bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500"
+                    disabled={isEnrolling}
+                  >
                     <span className="flex items-center gap-2">
-                      Proceed to Payment
+                      {sessionData.price === 0 ? "Enroll Now" : "Proceed to Payment"}
                       <ArrowRight className="w-4 h-4" />
                     </span>
                   </Button>
@@ -230,7 +306,7 @@ function SesEnrollment() {
         </Card>
       </div>
     </div>
-  );
+  )
 }
 
-export default SesEnrollment;
+export default SesEnrollment

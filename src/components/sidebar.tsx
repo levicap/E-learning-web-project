@@ -67,9 +67,11 @@ export default function SidebarContent() {
                 className="w-full justify-start hover:bg-primary/10 hover:text-primary"
                 onClick={() => navigate("/studio")}
               >
-                <BookOpen className="h-4 w-4 mr-2" />
+                <FileVideo className="h-4 w-4 mr-2" />
                 Record Courses
               </Button>
+            
+
 
               <Button
                 variant="ghost"
@@ -93,7 +95,8 @@ export default function SidebarContent() {
                 onClick={() => navigate("/quiz")}
               >
                 <Clipboard className="h-4 w-4 mr-2" />
-                Quizzes And Assignments
+                
+                 Quizzes And Assignments 
               </Button>
               <Button
                 variant="ghost"
@@ -146,43 +149,43 @@ export default function SidebarContent() {
 
           {/* Admin-only options */}
         {/* Admin-only options */}
-{isAdmin && (
+        {isAdmin && (
   <>
-     <Button
+    <Button
       variant="ghost"
-                className="w-full justify-start hover:bg-primary/10 hover:text-primary"
-      onClick={() => navigate("/admin/users")}
+      className="w-full justify-start hover:bg-primary/10 hover:text-primary"
+      onClick={() => { window.location.href = "/admin-users"; }}
     >
       <Users className="h-4 w-4 mr-2" />
       Users
     </Button>
     <Button
-     variant="ghost"
-                className="w-full justify-start hover:bg-primary/10 hover:text-primary"
-      onClick={() => navigate("/admincourse")}  // Changed from '/admincourse'
+      variant="ghost"
+      className="w-full justify-start hover:bg-primary/10 hover:text-primary"
+      onClick={() => { window.location.href = "/admin-course"; }}
     >
       <BookOpen className="h-4 w-4 mr-2" />
       Courses
     </Button>
     <Button
-     variant="ghost"
-                className="w-full justify-start hover:bg-primary/10 hover:text-primary"
-      onClick={() => navigate("/admin-dashboard")}  // Changed from '/admin-dashboard'
+      variant="ghost"
+      className="w-full justify-start hover:bg-primary/10 hover:text-primary"
+      onClick={() => { window.location.href = "/reports"; }}
+    >
+      <BookOpen className="h-4 w-4 mr-2" />
+      Session Reports
+    </Button>
+    <Button
+      variant="ghost"
+      className="w-full justify-start hover:bg-primary/10 hover:text-primary"
+      onClick={() => { window.location.href = "/admin-dashboard"; }}
     >
       <Presentation className="h-4 w-4 mr-2" />
       Analytics
     </Button>
-    <Button
-     variant="ghost"
-                className="w-full justify-start hover:bg-primary/10 hover:text-primary"
-      onClick={() => navigate("/admin/settings")}
-    >
-      <Settings className="h-4 w-4 mr-2" />
-      System Settings
-    </Button>
   </>
 )}
-        </div>
+ </div>
       </div>
       <Separator />
       <div className="px-3 py-2">

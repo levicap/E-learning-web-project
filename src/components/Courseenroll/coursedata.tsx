@@ -312,7 +312,9 @@ function CourseData() {
                   </CardContent>
                   <CardFooter className="flex justify-between items-center">
                     <div className="flex items-center space-x-2">
-                      <span className="text-2xl font-bold">{course.price} د.ت</span>
+                     <span className="text-2xl font-bold">
+  {course.price === 0 ? "Free" : `${course.price} د.ت`}
+</span>
                     </div>
                     <Button onClick={() => handleEnroll(course)} className="bg-gradient-to-r from-primary to-purple-600 hover:scale-105 transition-transform">
                       Enroll Now

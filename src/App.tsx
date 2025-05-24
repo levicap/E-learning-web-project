@@ -53,6 +53,11 @@ import Exam from './components/exam/exam';
 import Studio from './components/studio/studio';
 import CustomSettings from './components/settings/setting';
 import Help from './components/help/help';
+import InstructorProfile from './components/settings/profile';
+import  Powerpoint from './components/studio/powerpoint';
+import Home from './components/studio/lessonplan';
+import ReportTable from './components/data-table/report';
+import PaymentTable from './components/data-table/payment-table';
 
 import { Cpu, MessageSquare, FileText } from 'lucide-react';
 
@@ -75,8 +80,13 @@ function AppContent() {
   const sidebarRoutes = [
     '/teacher-dashboard',
     '/admin-dashboard',
-    '/admin/users',
-    '/admincourse',
+    '/admin-users',
+    '/admin-course',
+    'reports',
+    '/payments',
+    
+
+    
     '/courses',
     '/quiz',
     '/quiz-ai',
@@ -118,12 +128,14 @@ function AppContent() {
           <Routes>
             {/* Unauthorized fallback */}
             <Route path="/unauthorized" element={<Unauthorized />} />
+            <Route path ='/powerpoint' element={<Powerpoint/>}/>
 
             {/* PUBLIC (no login required) */}
             <Route path="/" element={<Landing />} />
             <Route path="/courses" element={<CourseDisplay />} />
             <Route path="/paths" element={<Path />} />
             <Route path="/sessions" element={<Allsessions />} />
+            <Route path="/plan" element={<Home/>} />
 
             {/* Auth pages */}
             <Route path="/login" element={<Login />} />
@@ -142,8 +154,25 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
+             <Route
+              path="/payments"
+              element={
+                <ProtectedRoute allowedRoles={['teacher']}>
+                  <PaymentTable />
+                </ProtectedRoute>
+              }
+            />
+                <Route
+              path="/reports"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <ReportTable />
+                </ProtectedRoute>
+              }
+            />
+            
             <Route
-              path="/admin/users"
+              path="/admin-users"
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <UsersPage />
@@ -151,7 +180,7 @@ function AppContent() {
               }
             />
             <Route
-              path="/admincourse"
+              path="/admin-course"
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <CoursesTable />
@@ -168,6 +197,7 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
+         
 
             {/* Student-only */}
             <Route
@@ -220,6 +250,14 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
+              <Route
+              path="/Profile"
+              element={
+                <ProtectedRoute allowedRoles={[ 'teacher']}>
+                  <InstructorProfile/>
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/quiz-ai"
               element={
@@ -239,7 +277,7 @@ function AppContent() {
             <Route
               path="/checkout"
               element={
-                <ProtectedRoute allowedRoles={['student']}>
+                <ProtectedRoute allowedRoles={['student','teacher']}>
                   <PaymentPage />
                 </ProtectedRoute>
               }
